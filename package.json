@@ -1,0 +1,13 @@
+{
+  "name": "knowledge-hub",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @knowledge-hub/api\" \"npm run dev -w @knowledge-hub/web\"",
+    "build": "npm run build -w @knowledge-hub/api && npm run build -w @knowledge-hub/web",
+    "start": "npm run start -w @knowledge-hub/api",
+    "seed": "npm run seed -w @knowledge-hub/api"
+  },
+  "devDependencies": { "concurrently": "^9.1.2" }
+}

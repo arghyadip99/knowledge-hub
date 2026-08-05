@@ -188,18 +188,8 @@ export const Idea = model(
       tags: { type: [String], default: [] },
       order: Number,
       importance: { type: Number, min: 1, max: 5, default: 3 },
-      ideaType: {
-        type: String,
-        enum: [
-          "principle",
-          "framework",
-          "claim",
-          "question",
-          "story",
-          "protocol",
-        ],
-        default: "principle",
-      },
+      // User-curated knowledge evolves beyond a closed taxonomy (e.g. mental-model, strategy).
+      ideaType: { type: String, trim: true, default: "principle" },
       confidence: { type: Number, min: 0, max: 1, default: 0.5 },
       approved: { type: Boolean, default: false },
     },

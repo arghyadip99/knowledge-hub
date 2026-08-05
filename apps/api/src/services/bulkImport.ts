@@ -99,7 +99,7 @@ export async function importKnowledge(payload: KnowledgeImport) {
         tags: lesson.tags,
         order: index + 1,
         timestampReferences:
-          lesson.timestamp?.startSeconds === undefined
+          lesson.timestamp?.startSeconds == null
             ? []
             : [lesson.timestamp.startSeconds],
         evidenceChunkIds: chunks.length ? [chunks[0]._id] : [],
@@ -122,7 +122,7 @@ export async function importKnowledge(payload: KnowledgeImport) {
       payload.actions.map((action) => ({
         knowledgeEntryId: entry._id,
         ideaId:
-          action.lessonIndex === undefined
+          action.lessonIndex == null
             ? undefined
             : lessons[action.lessonIndex]?._id,
         text: action.text,

@@ -105,6 +105,26 @@ npm run dev
 
 Run `npm run seed` to reset the local data with five example sources. This command clears the knowledge-hub collections first, so use it only for development.
 
+## Deploy to Vercel
+
+The Vercel deployment serves the Vite dashboard and the Express API from one
+project. Before deploying, create a hosted MongoDB database (such as MongoDB
+Atlas) and add these Vercel environment variables:
+
+```text
+MONGO_URI=<your hosted MongoDB connection string>
+JWT_SECRET=<a long, random secret>
+```
+
+Optional Google sign-in also needs `GOOGLE_CLIENT_ID` (API) and
+`VITE_GOOGLE_CLIENT_ID` (web build), with the Vercel domain listed as an
+authorised JavaScript origin in Google Cloud. Deploy from the repository root;
+Vercel runs `npm run build` and routes `/api/*` to the serverless API.
+
+Vercel cannot reach an Ollama instance on your computer. In production,
+AI-draft processing safely falls back to extraction from the supplied source
+text until a cloud AI provider adapter is configured.
+
 ## AI provider strategy
 
 Ollama is implemented as the local default. The API exposes configuration state for Gemini and Groq, but they are intentionally not used until their secure provider adapters are enabled and you add keys locally. This preserves the local-first guarantee and avoids silently sending private transcripts to a cloud provider.

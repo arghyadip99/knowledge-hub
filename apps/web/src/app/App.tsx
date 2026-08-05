@@ -339,6 +339,34 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
           canManage={session.user.role === "admin"}
         />
       </section>
+      <nav className="mobile-nav" aria-label="Mobile navigation">
+        <button
+          className={active === "all" ? "active" : ""}
+          onClick={() => {
+            setActive("all");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          <Compass size={19} />
+          <span>Library</span>
+        </button>
+        <button onClick={() => window.location.assign("/ships")}>
+          <ShipWheel size={19} />
+          <span>Ships</span>
+        </button>
+        {session.user.role === "admin" && (
+          <button className="mobile-capture" onClick={() => setCapture(true)}>
+            <CirclePlus size={21} />
+            <span>Capture</span>
+          </button>
+        )}
+        <button onClick={() => clearSession()}>
+          <span className="mobile-avatar">
+            {session.user.displayName.slice(0, 2).toUpperCase()}
+          </span>
+          <span>Log out</span>
+        </button>
+      </nav>
       {capture && (
         <Capture
           close={() => setCapture(false)}

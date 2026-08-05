@@ -1424,62 +1424,377 @@ article footer button {
 .auth-role {
   margin-top: 15px;
 }
-@media (max-width: 550px) {
-  header .add {
-    font-size: 0;
-    padding: 10px;
+
+/* Responsive foundations */
+.mobile-nav {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .content {
+    padding-right: 4%;
+    padding-left: 4%;
   }
-  .feed {
-    grid-template-columns: 1fr;
-  }
-  h1 {
-    font-size: 39px;
+  .hero {
+    padding-right: 0;
+    padding-left: 0;
   }
   .metrics > div {
-    padding: 16px;
+    padding: 20px 16px;
+  }
+  .route-page {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+}
+
+@media (max-width: 850px) {
+  body {
+    padding-bottom: 76px;
+  }
+  .content {
+    padding: 0 20px 38px;
+  }
+  header {
+    height: auto;
+    min-height: 72px;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0;
+  }
+  .search {
+    order: -1;
+    flex-basis: 100%;
+    min-height: 42px;
+    padding: 0 11px;
+    border: 1px solid #e0e2db;
+    border-radius: 9px;
+    background: #fffefa;
+  }
+  .header-action,
+  header .add,
+  header .icon {
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  header .add {
+    font-size: 11px;
+  }
+  .hero {
+    padding: 38px 0 32px;
+  }
+  .metrics > div {
+    min-height: 108px;
+  }
+  .mobile-nav {
+    position: fixed;
+    z-index: 4;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    gap: 2px;
+    padding: 7px max(12px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    border-top: 1px solid #dfe3da;
+    background: #fffefaf2;
+    box-shadow: 0 -8px 24px #18251a12;
+    backdrop-filter: blur(14px);
+  }
+  .mobile-nav button {
+    display: grid;
+    place-items: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 52px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #718077;
+    font: 600 10px "DM Sans";
+  }
+  .mobile-nav button.active,
+  .mobile-nav button:hover {
+    background: #edf2e7;
+    color: #31513d;
+  }
+  .mobile-nav .mobile-capture {
+    color: #426340;
+  }
+  .mobile-avatar {
+    display: grid;
+    place-items: center;
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    background: #d0e6d4;
+    color: #34523d;
+    font-size: 8px;
+  }
+  .route-page {
+    padding: 28px 20px 94px;
+  }
+  .route-page > .back {
+    margin-bottom: 26px;
+  }
+  .route-header {
+    margin-bottom: 28px;
+  }
+  .route-header h1,
+  .ships-page .route-header h1 {
+    font-size: clamp(36px, 8vw, 48px);
+  }
+  .ships-page .route-header {
+    padding: 26px 22px;
+  }
+  .ship-command {
+    grid-template-columns: minmax(0, 1fr) 42px auto;
+  }
+  .ship-fleet {
+    grid-template-columns: 1fr;
+  }
+  .listen-panel,
+  .review-source,
+  .archive-list > div {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    font-size: 16px;
+  }
+  .content {
+    padding: 0 15px 28px;
+  }
+  header {
+    gap: 6px;
+  }
+  .header-action {
+    flex: 1 1 auto;
+  }
+  header .add,
+  header .icon {
+    flex: 0 0 auto;
+  }
+  .hero {
+    padding: 30px 0 26px;
+  }
+  h1 {
+    font-size: clamp(34px, 11vw, 43px);
+    letter-spacing: -1.3px;
+  }
+  .subtitle {
+    margin: 13px 0;
+    font-size: 13px;
+  }
+  .metrics {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .metrics > div {
+    min-width: 0;
+    min-height: 96px;
+    padding: 14px 8px;
   }
   .metrics > div:first-child {
     padding-left: 0;
   }
+  .metrics strong {
+    margin-top: 6px;
+    font-size: 25px;
+  }
+  .metrics small {
+    display: none;
+  }
+  .section-heading {
+    align-items: flex-start;
+    gap: 13px;
+    margin: 34px 0 15px;
+  }
+  .section-heading h2 {
+    font-size: 24px;
+  }
+  .section-heading button {
+    flex: none;
+    padding-top: 5px;
+  }
+  .feed {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+  article {
+    min-height: 220px;
+    padding: 17px;
+  }
+  h3 {
+    margin-top: 13px;
+    font-size: 19px;
+  }
+  .summary {
+    margin: 11px 0;
+  }
+  article footer {
+    gap: 7px;
+    flex-wrap: wrap;
+    padding-top: 13px;
+  }
+  article footer button {
+    margin-left: auto;
+  }
+  .card-source-link {
+    margin-left: 0;
+  }
+  .notice {
+    align-items: flex-start;
+    gap: 10px;
+  }
   .overlay {
-    padding: 10px;
+    align-items: end;
+    padding: 0;
   }
-  .modal {
-    padding: 24px 19px;
+  .modal,
+  .review-modal.wide,
+  .quiz-modal,
+  .import-modal,
+  .graph-modal,
+  .archive-modal {
+    width: 100%;
+    max-height: min(88dvh, 760px);
+    padding: 26px 18px calc(24px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
   }
-  .review-grid {
+  .modal h2,
+  .capture-modal h2,
+  .review-modal h2,
+  .ship-modal h2 {
+    padding-right: 28px;
+    font-size: 25px;
+  }
+  .close {
+    top: 13px;
+    right: 13px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+  .review-grid,
+  .graph-stats {
     grid-template-columns: 1fr;
   }
-  .review-grid div {
-    border-right: 0;
-    border-bottom: 1px solid #e0e1d9;
+  .graph-nodes {
+    grid-template-columns: 1fr;
   }
+  .quiz-actions,
   .review-actions {
-    flex-wrap: wrap;
+    align-items: stretch;
+    flex-direction: column-reverse;
   }
-  .review-heading {
-    align-items: flex-start;
-    gap: 8px;
-    flex-direction: column;
+  .quiz-actions button,
+  .review-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+  .type-picker {
+    margin: 16px 0;
+  }
+  .type-picker button,
+  .ship-options button {
+    min-height: 40px;
+  }
+  .ship-create,
+  .ship-command {
+    grid-template-columns: minmax(0, 1fr) 42px;
+  }
+  .ship-create .add,
+  .ship-command .add {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .ship-card {
+    min-height: 0 !important;
+  }
+  .ship-manifest a {
+    min-height: 42px;
+  }
+  .route-page {
+    padding: 22px 15px 88px;
+  }
+  .route-header h1,
+  .ships-page .route-header h1 {
+    font-size: clamp(34px, 10vw, 42px);
+  }
+  .ships-page .route-header {
+    padding: 22px 18px;
   }
   .listen-panel {
-    align-items: flex-start;
-    flex-direction: column;
+    gap: 16px;
+    margin: 20px 0;
+    padding: 17px;
   }
   .listen-controls {
-    justify-content: flex-start;
+    width: 100%;
+  }
+  .listen-controls button,
+  .listen-controls select {
+    min-height: 38px;
+  }
+  .route-thesis,
+  .application-panel {
+    margin-top: 22px;
+    padding: 18px;
+  }
+  .route-thesis h2 {
+    font-size: 23px;
+  }
+  .route-section {
+    margin-top: 28px;
+  }
+  .route-lesson {
+    gap: 11px;
+    padding: 15px 0;
+  }
+  .route-lesson h3 {
+    margin-top: 0;
+  }
+  .auth-intro {
+    min-height: 270px;
+    padding: 34px 23px 54px;
   }
   .auth-page {
     grid-template-columns: 1fr;
   }
-  .auth-intro {
-    min-height: 310px;
-    padding: 42px 28px;
-  }
-  .auth-intro .brand {
-    margin-bottom: 14px;
+  .auth-intro h1 {
+    font-size: clamp(38px, 12vw, 52px);
   }
   .auth-card {
-    margin: -18px auto 36px;
+    width: calc(100% - 28px);
+    margin: -25px auto 22px;
+    padding: 27px 20px;
+  }
+  .auth-card h2 {
+    margin-bottom: 22px;
+    font-size: 27px;
+  }
+}
+
+@media (max-width: 380px) {
+  .metrics strong {
+    font-size: 22px;
+  }
+  .mobile-nav {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+  .mobile-nav button {
+    font-size: 9px;
+  }
+  .header-action {
+    padding-right: 7px;
+    padding-left: 7px;
+    font-size: 10px;
   }
 }

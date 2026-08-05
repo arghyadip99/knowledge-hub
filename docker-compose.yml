@@ -17,6 +17,8 @@ services:
       PORT: 4000
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      JWT_SECRET: ${JWT_SECRET:-local-development-change-me}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -28,6 +30,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     depends_on:
       - api
     ports:

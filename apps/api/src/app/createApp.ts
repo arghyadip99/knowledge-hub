@@ -25,6 +25,12 @@ import { importKnowledge, recordImportBatch } from "../services/bulkImport.js";
 import { hydrateYoutubeSource, processSource } from "../services/ingestion.js";
 import { asyncRoute, compactPayload as safe } from "../http/routeUtils.js";
 import {
+  requireAdmin,
+  requireAuth,
+  type AuthenticatedRequest,
+} from "../http/auth.js";
+import { authRoutes } from "../routes/authRoutes.js";
+import {
   findKnowledgeDetail,
   findKnowledgeLibrary,
 } from "../repositories/knowledgeRepository.js";
@@ -76,6 +82,8 @@ app.use(
   swaggerUi.setup(openapi, { customSiteTitle: "Knowledge Hub API Docs" }),
 );
 
+app.use("/api/auth", authRoutes);
+
 app.post(
   "/api/v1/imports/knowledge",
   asyncRoute(async (req, res) => {
@@ -113,6 +121,13 @@ app.post(
     });
   }),
 );
+
+// The curated bulk import remains deliberately public for the owner's ChatGPT workflow.
+// Every other API endpoint requires a session; writes additionally require the admin role.
+app.use("/api", requireAuth);
+app.use("/api", (req, res, next) =>
+  req.method === "GET" ? next() : requireAdmin(req, res, next),
+);
 app.get(
   "/api/v1/imports",
   asyncRoute(async (_req, res) =>
@@ -122,7 +137,7 @@ app.get(
 
 app.get(
   "/api/ships",
-  asyncRoute(async (req, res) => {
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
     const filter =
       req.query.archived === "true"
         ? { archivedAt: { $ne: null } }
@@ -187,10 +202,13 @@ app.delete(
 
 app.get(
   "/api/sources",
-  asyncRoute(async (req, res) => {
-    const filter: Record<string, unknown> = req.query.status
-      ? { status: req.query.status }
-      : { status: { $ne: "archived" } };
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const filter: Record<string, unknown> =
+      req.user?.role === "reader"
+        ? { status: "approved" }
+        : req.query.status
+          ? { status: req.query.status }
+          : { status: { $ne: "archived" } };
     if (req.query.type) filter.type = req.query.type;
     if (req.query.search) filter.$text = { $search: String(req.query.search) };
     res.json(await Source.find(filter).sort({ updatedAt: -1 }).lean());
@@ -198,7 +216,7 @@ app.get(
 );
 app.post(
   "/api/sources",
-  asyncRoute(async (req, res) => {
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
     const data = safe(sourceInput.parse(req.body));
     const source = await Source.create({
       ...data,
@@ -234,10 +252,12 @@ app.get(
 );
 app.get(
   "/api/sources/:id",
-  asyncRoute(async (req, res) => {
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
     const sourceId = id.parse(req.params.id);
     const source = await Source.findById(sourceId).lean();
     if (!source) return res.status(404).json({ message: "Source not found" });
+    if (req.user?.role === "reader" && source.status !== "approved")
+      return res.status(404).json({ message: "Source not found" });
     const [entry, chunks, runs] = await Promise.all([
       KnowledgeEntry.findOne({ sourceId }).lean(),
       TranscriptChunk.find({ sourceId }).sort({ position: 1 }).lean(),
@@ -341,10 +361,13 @@ app.delete(
 
 app.get(
   "/api/knowledge",
-  asyncRoute(async (req, res) => {
-    const filter: Record<string, unknown> = req.query.status
-      ? { status: req.query.status }
-      : { status: { $ne: "archived" } };
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const filter: Record<string, unknown> =
+      req.user?.role === "reader"
+        ? { status: { $in: ["distilled", "applied"] } }
+        : req.query.status
+          ? { status: req.query.status }
+          : { status: { $ne: "archived" } };
     if (req.query.ship) filter.shipIds = id.parse(String(req.query.ship));
     if (req.query.search) filter.$text = { $search: String(req.query.search) };
     res.json(await findKnowledgeLibrary(filter));
@@ -352,9 +375,14 @@ app.get(
 );
 app.get(
   "/api/knowledge/:id",
-  asyncRoute(async (req, res) => {
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
     const detail = await findKnowledgeDetail(id.parse(req.params.id));
     if (!detail)
+      return res.status(404).json({ message: "Knowledge entry not found" });
+    if (
+      req.user?.role === "reader" &&
+      !["distilled", "applied"].includes(detail.entry.status)
+    )
       return res.status(404).json({ message: "Knowledge entry not found" });
     res.json(detail);
   }),
@@ -611,18 +639,23 @@ app.get(
 );
 app.get(
   "/api/dashboard",
-  asyncRoute(async (_req, res) => {
-    const activeEntries = { status: { $ne: "archived" } };
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const activeEntries =
+      req.user?.role === "reader"
+        ? { status: { $in: ["distilled", "applied"] } }
+        : { status: { $ne: "archived" } };
     const [total, distilled, applied, inbox, areas, recent, due] =
       await Promise.all([
         KnowledgeEntry.countDocuments(activeEntries),
         KnowledgeEntry.countDocuments({ status: "distilled" }),
         KnowledgeEntry.countDocuments({ status: "applied" }),
-        Source.countDocuments({
-          status: {
-            $in: ["draft", "queued", "processing", "ready_for_review"],
-          },
-        }),
+        req.user?.role === "reader"
+          ? Promise.resolve(0)
+          : Source.countDocuments({
+              status: {
+                $in: ["draft", "queued", "processing", "ready_for_review"],
+              },
+            }),
         KnowledgeEntry.aggregate([
           { $match: activeEntries },
           { $group: { _id: "$focusArea", count: { $sum: 1 } } },

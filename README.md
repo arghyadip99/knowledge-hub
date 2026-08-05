@@ -35,7 +35,21 @@ MongoDB is published by Docker on your host machine. Use this connection string 
 mongodb://127.0.0.1:27017/knowledge-hub
 ```
 
-Authentication is intentionally disabled for this local-only development setup. If the `mongosh` command is unavailable, install MongoDB Shell or use MongoDB Compass; the database itself is still reachable on port `27017`.
+Application authentication is enabled even locally. If the `mongosh` command is unavailable, install MongoDB Shell or use MongoDB Compass; the database itself is still reachable on port `27017`.
+
+## Accounts and access
+
+The first account created in an empty local database becomes the **admin**. Every account created afterwards is a **reader**: it can view published (`distilled` or `applied`) knowledge but cannot create, edit, archive, or review content. The curated bulk import endpoint remains unauthenticated by request.
+
+Email/password accounts use a salted, memory-hard password hash; sessions are signed and expire after seven days. Set a unique `JWT_SECRET` in `.env` before using any non-local environment.
+
+To enable Google sign-in, create a Google OAuth **Web application** client with `http://localhost:8080` as an authorised JavaScript origin, then set `GOOGLE_CLIENT_ID` in `.env` and rebuild:
+
+```bash
+docker compose up --build
+```
+
+The Google button remains hidden until that value is set. Google authentication is optional; username/password signup works without it.
 
 ## Data model
 
@@ -54,7 +68,7 @@ The MongoDB domain is deliberately split so original evidence and personal knowl
 
 ### Manual bulk imports
 
-Use `POST /api/v1/imports/knowledge` to import a fully curated source in one request. One request may contain up to 25 imports; each source can include up to 50 ordered lessons, 20 quotes, and 20 actions. The API has no authentication by design because it is local-only.
+Use `POST /api/v1/imports/knowledge` to import a fully curated source in one request. One request may contain up to 25 imports; each source can include up to 50 ordered lessons, 20 quotes, and 20 actions. This specific endpoint intentionally does not require authentication so it stays easy to use from your manual ChatGPT workflow; protect the local API port if other people can reach your machine.
 
 Open interactive Swagger documentation at `http://localhost:4000/api/docs` or retrieve the OpenAPI document from `/api/docs/openapi.json`.
 

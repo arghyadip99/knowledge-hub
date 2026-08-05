@@ -26,6 +26,12 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { AuthPage } from "../features/auth/AuthPage";
+import {
+  clearSession,
+  getSession,
+  type AuthSession,
+} from "../features/auth/session";
 import { KnowledgePage as KnowledgeRoutePage } from "../pages/KnowledgePage";
 import { ShipsPage as ShipsRoutePage } from "../pages/ShipsPage";
 import {
@@ -41,6 +47,19 @@ import {
 import "../styles.css";
 
 function App() {
+  const [session, setSession] = useState<AuthSession | null>(() =>
+    getSession(),
+  );
+  useEffect(() => {
+    const sync = () => setSession(getSession());
+    window.addEventListener("knowledge-hub:auth", sync);
+    return () => window.removeEventListener("knowledge-hub:auth", sync);
+  }, []);
+  if (!session) return <AuthPage onAuthenticated={setSession} />;
+  return <AuthenticatedApp session={session} />;
+}
+
+function AuthenticatedApp({ session }: { session: AuthSession }) {
   const path = window.location.pathname;
   if (path === "/ships") return <ShipsRoutePage />;
   const knowledgeMatch = path.match(/^\/knowledge\/([a-f\d]{24})$/i);
@@ -191,8 +210,10 @@ function App() {
               <small>Turn insight into evidence</small>
             </span>
           </div>
-          <button className="profile">
-            <span>AC</span>Arghya <ChevronRight size={15} />
+          <button className="profile" onClick={clearSession} title="Log out">
+            <span>{session.user.displayName.slice(0, 2).toUpperCase()}</span>
+            {session.user.displayName} · {session.user.role}
+            <ChevronRight size={15} />
           </button>
         </div>
       </aside>
@@ -209,33 +230,41 @@ function App() {
           <button className="icon" onClick={() => setActive("all")}>
             <Bell size={19} />
           </button>
-          <button
-            className="ghost header-action"
-            onClick={() => setQuizOpen(true)}
-          >
-            Recall
-          </button>
-          <button
-            className="ghost header-action"
-            onClick={() => setImportOpen(true)}
-          >
-            Import JSON
-          </button>
-          <button
-            className="ghost header-action"
-            onClick={() => setArchiveOpen(true)}
-          >
-            Archive
-          </button>
+          {session.user.role === "admin" && (
+            <button
+              className="ghost header-action"
+              onClick={() => setQuizOpen(true)}
+            >
+              Recall
+            </button>
+          )}
+          {session.user.role === "admin" && (
+            <button
+              className="ghost header-action"
+              onClick={() => setImportOpen(true)}
+            >
+              Import JSON
+            </button>
+          )}
+          {session.user.role === "admin" && (
+            <button
+              className="ghost header-action"
+              onClick={() => setArchiveOpen(true)}
+            >
+              Archive
+            </button>
+          )}
           <button
             className="ghost header-action"
             onClick={() => setGraphOpen(true)}
           >
             Graph
           </button>
-          <button className="add" onClick={() => setCapture(true)}>
-            <CirclePlus size={18} /> Capture knowledge
-          </button>
+          {session.user.role === "admin" && (
+            <button className="add" onClick={() => setCapture(true)}>
+              <CirclePlus size={18} /> Capture knowledge
+            </button>
+          )}
         </header>
         {notice && (
           <div className="notice">
@@ -256,9 +285,11 @@ function App() {
             <p className="subtitle">
               Every card can travel between ships as your thinking evolves.
             </p>
-            <button className="hero-capture" onClick={() => setCapture(true)}>
-              <CirclePlus size={17} /> Add a source
-            </button>
+            {session.user.role === "admin" && (
+              <button className="hero-capture" onClick={() => setCapture(true)}>
+                <CirclePlus size={17} /> Add a source
+              </button>
+            )}
           </div>
           <div className="orb">
             <ShipWheel size={65} />
@@ -305,6 +336,7 @@ function App() {
           edit={setEditing}
           archive={archive}
           flag={setFlagging}
+          canManage={session.user.role === "admin"}
         />
       </section>
       {capture && (
@@ -812,6 +844,7 @@ function Library({
   edit,
   archive,
   flag,
+  canManage,
 }: {
   entries: Entry[];
   sources: Source[];
@@ -820,6 +853,7 @@ function Library({
   edit: (entry: Entry) => void;
   archive: (entry: Entry) => Promise<void>;
   flag: (entry: Entry) => void;
+  canManage: boolean;
 }) {
   return (
     <>
@@ -828,9 +862,11 @@ function Library({
           <p className="eyebrow">APPROVED KNOWLEDGE</p>
           <h2>Recent discoveries</h2>
         </div>
-        <button onClick={capture}>
-          Capture another <ArrowUpRight size={15} />
-        </button>
+        {canManage && (
+          <button onClick={capture}>
+            Capture another <ArrowUpRight size={15} />
+          </button>
+        )}
       </div>
       <div className="feed">
         {entries.slice(0, 12).map((entry) => (
@@ -847,12 +883,14 @@ function Library({
                   <span>Unassigned</span>
                 )}
               </span>
-              <CardMenu
-                entry={entry}
-                edit={edit}
-                archive={archive}
-                flag={flag}
-              />
+              {canManage && (
+                <CardMenu
+                  entry={entry}
+                  edit={edit}
+                  archive={archive}
+                  flag={flag}
+                />
+              )}
             </div>
             <h3>{entry.title}</h3>
             <p className="creator">

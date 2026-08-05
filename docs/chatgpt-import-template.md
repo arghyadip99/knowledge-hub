@@ -22,7 +22,7 @@ Return ONLY valid JSON. No Markdown fences, explanations, or comments. It must e
         "publishedAt": "[optional ISO timestamp]",
         "durationSeconds": 0,
         "language": "en",
-        "focusArea": "Psychology"
+        "focusArea": "Optional legacy category; omit this for new imports"
       },
       "knowledge": {
         "centralThesis": "A precise one- or two-sentence thesis.",
@@ -70,7 +70,7 @@ Rules:
 - Use importance 5 only for exceptional, high-leverage insights.
 - Use a timestamp only when it is known. Omit the timestamp object otherwise.
 - Keep timestamps in seconds, not `HH:MM:SS` strings.
-- `focusArea` is a free-form label. Use a specific, useful phrase such as `Human Behaviour, Ambition and Wealth`; existing areas are suggestions, not restrictions.
+- Ships are deliberately owner-managed. Imports leave cards unassigned; use the card menu to flag them into a Ship you have created and captained.
 - `reminderFrequency` is also a free-form label, for example `quarterly`, `weekly`, or `after next viewing`.
 - Use only these lesson types: principle, framework, claim, question, story, protocol.
 - `lessonIndex` is zero-based: 0 refers to the first lesson.

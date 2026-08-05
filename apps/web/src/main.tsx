@@ -14,6 +14,7 @@ import {
   Lightbulb,
   MoreHorizontal,
   Pencil,
+  Pause,
   Play,
   Plus,
   Search,
@@ -21,6 +22,7 @@ import {
   Sparkles,
   Tag,
   Trash2,
+  Volume2,
   X,
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
@@ -29,7 +31,6 @@ import "./styles.css";
 type Ship = {
   _id: string;
   name: string;
-  captainName?: string;
   color: string;
   description?: string;
   cardCount: number;
@@ -62,6 +63,7 @@ type Entry = {
   _id: string;
   sourceId: string;
   title: string;
+  captainName?: string;
   shipIds: string[];
   ships: Ship[];
   status: "inbox" | "distilled" | "applied" | "archived";
@@ -439,7 +441,10 @@ function App() {
 }
 function KnowledgePage({ id }: { id: string }) {
   const [detail, setDetail] = useState<Detail | null>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [actionText, setActionText] = useState(""),
+    [reflection, setReflection] = useState(""),
+    [saving, setSaving] = useState(false);
   useEffect(() => {
     void api<Detail>(`/api/knowledge/${id}`)
       .then(setDetail)
@@ -459,6 +464,33 @@ function KnowledgePage({ id }: { id: string }) {
       </main>
     );
   const { entry, source, ideas, quotes, actions, ships } = detail;
+  const addAction = async () => {
+    if (!entry || !actionText.trim()) return;
+    setSaving(true);
+    try {
+      await api(`/api/knowledge/${entry._id}/actions`, {
+        method: "POST",
+        body: JSON.stringify({ text: actionText, reminderFrequency: "weekly" }),
+      });
+      setActionText("");
+      setDetail(await api<Detail>(`/api/knowledge/${id}`));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const saveReflection = async () => {
+    if (!entry || !reflection.trim()) return;
+    setSaving(true);
+    try {
+      await api(`/api/knowledge/${entry._id}/reviews`, {
+        method: "POST",
+        body: JSON.stringify({ reflection, didIApplyIt: true }),
+      });
+      setReflection("");
+    } finally {
+      setSaving(false);
+    }
+  };
   return (
     <main className="route-page">
       <a className="back" href="/">
@@ -470,10 +502,26 @@ function KnowledgePage({ id }: { id: string }) {
           {ships.map((ship) => ship.name).join(" · ") || "Unassigned"}
         </p>
         <h1>{entry?.title || source.title}</h1>
-        <p>{source.creatorName || "Personal source"}</p>
+        <p>{entry?.captainName || source.creatorName || "Personal source"}</p>
+        {source.url && (
+          <a
+            className="source-link"
+            href={source.url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open original source <ArrowUpRight size={15} />
+          </a>
+        )}
       </header>
       {entry && (
         <>
+          <ListenPanel
+            title={entry.title}
+            thesis={entry.centralThesis}
+            summary={entry.summary}
+            lessons={ideas}
+          />
           <section className="route-thesis">
             <p className="eyebrow">CENTRAL THESIS</p>
             <h2>{entry.centralThesis}</h2>
@@ -499,26 +547,175 @@ function KnowledgePage({ id }: { id: string }) {
               ))}
             </section>
           )}
-          {actions.length > 0 && (
-            <section className="route-section">
-              <p className="eyebrow">ACTIONS</p>
+          <section className="route-section application-panel">
+            <p className="eyebrow">PUT IT INTO PRACTICE</p>
+            <input
+              value={actionText}
+              onChange={(event) => setActionText(event.target.value)}
+              placeholder="One concrete action to try"
+            />
+            <button
+              className="add"
+              disabled={saving || !actionText.trim()}
+              onClick={() => void addAction()}
+            >
+              Add action
+            </button>
+            <div className="action-list">
               {actions.map((action) => (
                 <p key={action._id}>
                   • {action.text} <small>({action.reminderFrequency})</small>
                 </p>
               ))}
-            </section>
-          )}
+            </div>
+            <textarea
+              value={reflection}
+              onChange={(event) => setReflection(event.target.value)}
+              placeholder="What happened when you applied this?"
+              rows={3}
+            />
+            <button
+              className="ghost"
+              disabled={saving || !reflection.trim()}
+              onClick={() => void saveReflection()}
+            >
+              Save reflection
+            </button>
+          </section>
         </>
       )}
     </main>
+  );
+}
+function ListenPanel({
+  title,
+  thesis,
+  summary,
+  lessons,
+}: {
+  title: string;
+  thesis: string;
+  summary: string;
+  lessons: Idea[];
+}) {
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [preference, setPreference] = useState<"female" | "male">("female");
+  const [speed, setSpeed] = useState(1);
+  const [speaking, setSpeaking] = useState(false);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+    const refresh = () => setVoices(window.speechSynthesis.getVoices());
+    refresh();
+    window.speechSynthesis.addEventListener("voiceschanged", refresh);
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", refresh);
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const stop = () => {
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+    setPaused(false);
+  };
+
+  const speak = () => {
+    if (!("speechSynthesis" in window)) return;
+    stop();
+    const utterance = new SpeechSynthesisUtterance(
+      `${title}. Central thesis. ${thesis}. Summary. ${summary}. Key lessons. ${lessons
+        .map(
+          (lesson, index) =>
+            `${index + 1}. ${lesson.title}. ${lesson.explanation}`,
+        )
+        .join(" ")}`,
+    );
+    const voicePattern =
+      preference === "female"
+        ? /female|woman|zira|samantha|victoria|karen|moira/i
+        : /male|man|david|daniel|alex|fred/i;
+    utterance.voice =
+      voices.find((voice) => voicePattern.test(voice.name)) ||
+      voices[0] ||
+      null;
+    utterance.rate = speed;
+    utterance.onend = utterance.onerror = () => {
+      setSpeaking(false);
+      setPaused(false);
+    };
+    setSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const togglePause = () => {
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setPaused(false);
+    } else {
+      window.speechSynthesis.pause();
+      setPaused(true);
+    }
+  };
+
+  return (
+    <section className="listen-panel">
+      <div>
+        <p className="eyebrow">LISTEN TO THIS KNOWLEDGE</p>
+        <b>Make this card part of your commute.</b>
+        <small>
+          Uses the voices installed in your browser or operating system.
+        </small>
+      </div>
+      <div className="listen-controls">
+        <button
+          className={preference === "female" ? "selected" : ""}
+          onClick={() => setPreference("female")}
+        >
+          Female voice
+        </button>
+        <button
+          className={preference === "male" ? "selected" : ""}
+          onClick={() => setPreference("male")}
+        >
+          Male voice
+        </button>
+        <select
+          aria-label="Reading speed"
+          value={speed}
+          onChange={(event) => setSpeed(Number(event.target.value))}
+        >
+          {[0.75, 1, 1.25, 1.5, 2].map((value) => (
+            <option key={value} value={value}>
+              {value}×
+            </option>
+          ))}
+        </select>
+        {speaking ? (
+          <>
+            <button className="ghost" onClick={togglePause}>
+              {paused ? <Play size={15} /> : <Pause size={15} />}
+              {paused ? "Resume" : "Pause"}
+            </button>
+            <button className="stop-listening" onClick={stop}>
+              Stop
+            </button>
+          </>
+        ) : (
+          <button className="add" onClick={speak}>
+            <Volume2 size={16} />
+            Listen
+          </button>
+        )}
+      </div>
+    </section>
   );
 }
 function ShipsPage() {
   const [ships, setShips] = useState<Ship[]>([]),
     [entries, setEntries] = useState<Entry[]>([]),
     [name, setName] = useState(""),
-    [captainName, setCaptain] = useState(""),
     [color, setColor] = useState("#9bbf91"),
     [error, setError] = useState("");
   const load = async () => {
@@ -541,10 +738,9 @@ function ShipsPage() {
     try {
       await api("/api/ships", {
         method: "POST",
-        body: JSON.stringify({ name, captainName, color }),
+        body: JSON.stringify({ name, color }),
       });
       setName("");
-      setCaptain("");
       await load();
     } catch (error) {
       setError(
@@ -561,9 +757,9 @@ function ShipsPage() {
         <p className="eyebrow">SHIP COMMAND CENTER</p>
         <h1>Build your fleet.</h1>
         <p>
-          Create the Ships you want to navigate. Every Ship has a Captain—the
-          person or channel delivering the knowledge—and a live manifest of its
-          cards.
+          Ships are app-level collections. Every knowledge card has its own
+          Captain—the person or channel delivering that specific knowledge—and
+          appears in the live manifest below.
         </p>
       </header>
       <form className="ship-command" onSubmit={create}>
@@ -572,11 +768,6 @@ function ShipsPage() {
           onChange={(event) => setName(event.target.value)}
           placeholder="Ship name"
           required
-        />
-        <input
-          value={captainName}
-          onChange={(event) => setCaptain(event.target.value)}
-          placeholder="Captain / knowledge deliverer"
         />
         <input
           type="color"
@@ -596,7 +787,18 @@ function ShipsPage() {
               <i style={{ background: ship.color }} />
               <div className="ship-card-heading">
                 <p className="eyebrow">
-                  CAPTAIN · {ship.captainName || "Unassigned"}
+                  {manifest.length} cards ·{" "}
+                  {
+                    new Set(
+                      manifest.map(
+                        (entry) =>
+                          entry.captainName ||
+                          entry.source?.creatorName ||
+                          "Unknown captain",
+                      ),
+                    ).size
+                  }{" "}
+                  captains
                 </p>
                 <h2>{ship.name}</h2>
                 <small>{manifest.length} knowledge cards aboard</small>
@@ -737,6 +939,18 @@ function Library({
               <button onClick={() => void open(entry)}>
                 Open <ArrowUpRight size={14} />
               </button>
+              {entry.source?.url && (
+                <a
+                  className="card-source-link"
+                  href={entry.source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open original source for ${entry.title}`}
+                >
+                  <Play size={14} />
+                  Source
+                </a>
+              )}
             </footer>
           </article>
         ))}
@@ -872,7 +1086,6 @@ function ShipManager({
   changed: () => Promise<void>;
 }) {
   const [name, setName] = useState(""),
-    [captainName, setCaptainName] = useState(""),
     [color, setColor] = useState("#9bbf91"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -882,10 +1095,9 @@ function ShipManager({
     try {
       await api("/api/ships", {
         method: "POST",
-        body: JSON.stringify({ name, captainName, color }),
+        body: JSON.stringify({ name, color }),
       });
       setName("");
-      setCaptainName("");
       await changed();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create ship");
@@ -909,11 +1121,6 @@ function ShipManager({
             required
           />
           <input
-            value={captainName}
-            onChange={(e) => setCaptainName(e.target.value)}
-            placeholder="Captain / knowledge deliverer"
-          />
-          <input
             aria-label="Ship colour"
             type="color"
             value={color}
@@ -930,10 +1137,7 @@ function ShipManager({
               <i style={{ background: ship.color }} />
               <span>
                 {ship.name}
-                <small>
-                  {ship.captainName ? `Captain: ${ship.captainName} · ` : ""}
-                  {ship.cardCount} cards
-                </small>
+                <small>{ship.cardCount} cards</small>
               </span>
               <button
                 className="icon"
@@ -968,6 +1172,9 @@ function EditKnowledge({
   saved: (updates: Record<string, unknown>) => Promise<void>;
 }) {
   const [title, setTitle] = useState(entry.title),
+    [captainName, setCaptainName] = useState(
+      entry.captainName || entry.source?.creatorName || "",
+    ),
     [thesis, setThesis] = useState(entry.centralThesis),
     [summary, setSummary] = useState(entry.summary),
     [tags, setTags] = useState(entry.tags.join(", ")),
@@ -979,6 +1186,7 @@ function EditKnowledge({
     try {
       await saved({
         title,
+        captainName,
         centralThesis: thesis,
         summary,
         tags: tags
@@ -1007,6 +1215,14 @@ function EditKnowledge({
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Captain <span>person or channel delivering this knowledge</span>
+          <input
+            value={captainName}
+            onChange={(e) => setCaptainName(e.target.value)}
             required
           />
         </label>

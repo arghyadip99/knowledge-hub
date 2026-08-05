@@ -48,6 +48,7 @@ const sourceInput = z.object({
 });
 const entryInput = z.object({
   title: z.string().min(1).optional(),
+  captainName: z.string().trim().min(2).max(160).optional(),
   focusArea: flexibleFocusArea.optional(),
   centralThesis: z.string().optional(),
   summary: z.string().optional(),
@@ -162,16 +163,14 @@ app.post(
       results,
       payload.imports[0]?.origin,
     );
-    res
-      .status(batch.failed ? 207 : 201)
-      .json({
-        batchId: batch._id,
-        status: batch.status,
-        requested: batch.requested,
-        created: batch.created,
-        failed: batch.failed,
-        results,
-      });
+    res.status(batch.failed ? 207 : 201).json({
+      batchId: batch._id,
+      status: batch.status,
+      requested: batch.requested,
+      created: batch.created,
+      failed: batch.failed,
+      results,
+    });
   }),
 );
 app.get(
@@ -208,14 +207,12 @@ app.get(
 app.post(
   "/api/ships",
   asyncRoute(async (req, res) =>
-    res
-      .status(201)
-      .json(
-        await Ship.create({
-          ownerId: "local-owner",
-          ...safe(shipInput.parse(req.body)),
-        }),
-      ),
+    res.status(201).json(
+      await Ship.create({
+        ownerId: "local-owner",
+        ...safe(shipInput.parse(req.body)),
+      }),
+    ),
   ),
 );
 app.patch(
@@ -630,15 +627,13 @@ app.post(
         answer: z.string().max(4000).optional(),
       })
       .parse(req.body);
-    res
-      .status(201)
-      .json(
-        await QuizAttempt.create({
-          ...data,
-          ideaId: idea._id,
-          knowledgeEntryId: idea.knowledgeEntryId,
-        }),
-      );
+    res.status(201).json(
+      await QuizAttempt.create({
+        ...data,
+        ideaId: idea._id,
+        knowledgeEntryId: idea.knowledgeEntryId,
+      }),
+    );
   }),
 );
 app.get(
@@ -834,51 +829,45 @@ app.use(
     if (error instanceof mongoose.Error.CastError)
       return res.status(400).json({ message: "Invalid document id" });
     console.error(error);
-    res
-      .status(500)
-      .json({
-        message: error instanceof Error ? error.message : "Server error",
-      });
+    res.status(500).json({
+      message: error instanceof Error ? error.message : "Server error",
+    });
   },
 );
 const port = Number(process.env.PORT || 4000);
-async function migrateLegacyFocusAreasToShips() {
+async function backfillKnowledgeCaptains() {
+  await Ship.collection.updateMany({}, { $unset: { captainName: "" } });
   const entries = await KnowledgeEntry.find({
-    $or: [{ shipIds: { $exists: false } }, { shipIds: { $size: 0 } }],
+    captainName: { $in: [null, ""] },
   })
-    .select("_id focusArea")
+    .select("_id sourceId")
     .lean();
-  const names = [
-    ...new Set(
-      entries
-        .map((entry) => entry.focusArea)
-        .filter((name): name is string => Boolean(name)),
-    ),
-  ];
-  const ships = await Promise.all(
-    names.map((name) =>
-      Ship.findOneAndUpdate(
-        { ownerId: "local-owner", name },
-        { $setOnInsert: { ownerId: "local-owner", name } },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
-      ),
-    ),
+  const sources = await Source.find({
+    _id: { $in: entries.map((entry) => entry.sourceId) },
+  })
+    .select("_id creatorName")
+    .lean();
+  const captainBySource = new Map(
+    sources.map((source) => [String(source._id), source.creatorName]),
   );
-  const shipByName = new Map(ships.map((ship) => [ship.name, ship._id]));
-  await Promise.all(
-    entries.map((entry) =>
-      entry.focusArea
-        ? KnowledgeEntry.updateOne(
-            { _id: entry._id },
-            { $set: { shipIds: [shipByName.get(entry.focusArea)] } },
-          )
-        : Promise.resolve(),
-    ),
+  await KnowledgeEntry.bulkWrite(
+    entries.map((entry) => ({
+      updateOne: {
+        filter: { _id: entry._id },
+        update: {
+          $set: {
+            captainName:
+              captainBySource.get(String(entry.sourceId)) || "Unknown captain",
+          },
+        },
+      },
+    })),
   );
 }
 mongoose
   .connect(process.env.MONGO_URI || "mongodb://localhost:27017/knowledge-hub")
   .then(async () => {
+    await backfillKnowledgeCaptains();
     app.listen(port, () => console.log(`Knowledge Hub API on :${port}`));
   })
   .catch(console.error);

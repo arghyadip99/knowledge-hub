@@ -48,7 +48,6 @@ export const Ship = model(
     {
       ownerId: localOwner,
       name: { type: String, required: true, trim: true },
-      captainName: { type: String, default: "", trim: true },
       description: { type: String, default: "" },
       color: { type: String, default: "#9bbf91" },
       archivedAt: Date,
@@ -140,6 +139,7 @@ export const KnowledgeEntry = model(
         unique: true,
       },
       title: { type: String, required: true },
+      captainName: { type: String, default: "", trim: true },
       shipIds: [{ type: Schema.Types.ObjectId, ref: "Ship" }],
       focusArea: { type: String, trim: true },
       status: {

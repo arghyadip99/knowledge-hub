@@ -27,6 +27,7 @@ Return ONLY valid JSON. No Markdown fences, explanations, or comments. It must e
       "knowledge": {
         "centralThesis": "A precise one- or two-sentence thesis.",
         "summary": "A concise, evidence-grounded 1–3 paragraph summary.",
+        "captainName": "The person or channel delivering this knowledge.",
         "whyItMattersToMe": "Optional personal relevance; leave empty if unknown.",
         "tags": ["decision-making", "wealth"],
         "status": "distilled"
@@ -70,7 +71,7 @@ Rules:
 - Use importance 5 only for exceptional, high-leverage insights.
 - Use a timestamp only when it is known. Omit the timestamp object otherwise.
 - Keep timestamps in seconds, not `HH:MM:SS` strings.
-- Ships are deliberately owner-managed. Imports leave cards unassigned; use the card menu to flag them into a Ship you have created and captained.
+- Ships are deliberately owner-managed app-level collections. Imports leave cards unassigned; use the card menu to flag them into a Ship. Each knowledge card has its own Captain, which may differ from other cards in the same Ship.
 - `reminderFrequency` is also a free-form label, for example `quarterly`, `weekly`, or `after next viewing`.
 - Use only these lesson types: principle, framework, claim, question, story, protocol.
 - `lessonIndex` is zero-based: 0 refers to the first lesson.

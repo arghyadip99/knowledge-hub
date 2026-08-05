@@ -3,6 +3,7 @@ import { clearSession, getSession } from "../features/auth/session";
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const session = getSession();
   const response = await fetch(path, {
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...(session ? { Authorization: `Bearer ${session.token}` } : {}),

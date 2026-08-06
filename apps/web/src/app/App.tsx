@@ -3,7 +3,6 @@ import {
   ArchiveRestore,
   ArrowUpRight,
   Bell,
-  BookOpen,
   Brain,
   Check,
   ChevronRight,
@@ -699,29 +698,6 @@ function Library({
       <div className="feed">
         {pageEntries.map((entry) => (
           <article key={entry._id}>
-            <div
-              className={
-                "card-thumb" +
-                (entry.source?.thumbnailUrl ? "" : " card-thumb-fallback")
-              }
-            >
-              {entry.source?.thumbnailUrl ? (
-                <img
-                  src={entry.source.thumbnailUrl}
-                  alt=""
-                  loading="lazy"
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                    event.currentTarget.parentElement?.classList.add(
-                      "card-thumb-fallback",
-                    );
-                  }}
-                />
-              ) : (
-                <BookOpen size={22} />
-              )}
-              <span className="card-thumb-type">{entry.source?.type}</span>
-            </div>
             <div className="entry-top">
               <span className="ship-pills">
                 {entry.ships.length ? (
@@ -734,6 +710,9 @@ function Library({
                   <span>Unassigned</span>
                 )}
               </span>
+              {entry.source?.type && (
+                <span className="source-type-tag">{entry.source.type}</span>
+              )}
               {canManage && (
                 <CardMenu
                   entry={entry}

@@ -20,6 +20,7 @@ import {
   focusAreas,
 } from "../models/Knowledge.js";
 import { User } from "../models/User.js";
+import { ReaderNotification } from "../models/Notification.js";
 import { openapi } from "../docs/openapi.js";
 import { bulkKnowledgeImportSchema } from "../schemas/import.js";
 import { importKnowledge, recordImportBatch } from "../services/bulkImport.js";
@@ -31,6 +32,7 @@ import {
   type AuthenticatedRequest,
 } from "../http/auth.js";
 import { authRoutes } from "../routes/authRoutes.js";
+import { queuePublishedKnowledge } from "../services/notifications.js";
 import {
   findKnowledgeDetail,
   findKnowledgeLibrary,
@@ -131,7 +133,9 @@ app.post(
 // Every other API endpoint requires a session; writes additionally require the admin role.
 app.use("/api", requireAuth);
 app.use("/api", (req, res, next) =>
-  req.method === "GET" ? next() : requireAdmin(req, res, next),
+  req.method === "GET" || req.path === "/notifications/read"
+    ? next()
+    : requireAdmin(req, res, next),
 );
 app.get(
   "/api/debug/database",
@@ -159,6 +163,37 @@ app.get(
   asyncRoute(async (_req, res) =>
     res.json(await ImportBatch.find().sort({ createdAt: -1 }).limit(50).lean()),
   ),
+);
+app.get(
+  "/api/notifications",
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const notification = await ReaderNotification.findOne({
+      userId: req.user?.id,
+    }).lean();
+    const unreadCount = notification?.unreadEntryIds.length || 0;
+    res.json({
+      unreadCount,
+      notification:
+        unreadCount > 0
+          ? {
+              id: String(notification?._id),
+              count: unreadCount,
+              latestEntryTitle: notification?.latestEntryTitle || "",
+              publishedAt: notification?.latestPublishedAt,
+            }
+          : null,
+    });
+  }),
+);
+app.post(
+  "/api/notifications/read",
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    await ReaderNotification.updateOne(
+      { userId: req.user?.id },
+      { $set: { unreadEntryIds: [], readAt: new Date() } },
+    );
+    res.status(204).end();
+  }),
 );
 
 app.get(
@@ -348,6 +383,7 @@ app.post(
       Idea.updateMany({ knowledgeEntryId: entry._id }, { approved: true }),
       Quote.updateMany({ knowledgeEntryId: entry._id }, { approved: true }),
     ]);
+    await queuePublishedKnowledge(entry._id, entry.title, now);
     res.json({ source, entry });
   }),
 );

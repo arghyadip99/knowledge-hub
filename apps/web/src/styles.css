@@ -664,6 +664,102 @@ header {
   background: transparent;
   color: #59635d;
 }
+.notification-wrap {
+  position: relative;
+}
+.notification-trigger,
+.mobile-notification-trigger {
+  position: relative;
+}
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border: 2px solid #f6f5f0;
+  border-radius: 12px;
+  background: #bf5c4b;
+  color: white;
+  font: 700 9px "DM Mono";
+}
+.notification-popover {
+  width: 330px;
+  padding: 17px;
+  border: 1px solid #dfe5d9;
+  border-radius: 13px;
+  background: #fffefa;
+  box-shadow: 0 18px 45px #1b291d26;
+}
+.notification-wrap .notification-popover {
+  position: absolute;
+  z-index: 6;
+  top: 34px;
+  right: 0;
+}
+.notification-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  color: #58744f;
+}
+.notification-heading h2 {
+  margin: 1px 0 0;
+  color: #263a2e;
+  font: 600 22px "Playfair Display";
+}
+.notification-card,
+.notification-empty {
+  display: flex;
+  gap: 11px;
+  margin-top: 16px;
+  padding: 13px;
+  border-radius: 9px;
+  background: #eef5e7;
+}
+.notification-empty {
+  background: #f4f5f1;
+}
+.notification-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 31px;
+  height: 31px;
+  border-radius: 9px;
+  background: #d8eccd;
+  color: #496d43;
+}
+.notification-card b,
+.notification-empty b {
+  display: block;
+  color: #38513e;
+  font-size: 12px;
+}
+.notification-card p,
+.notification-empty p {
+  margin: 4px 0 8px;
+  color: #6e7e73;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.notification-card button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #4d784d;
+  font: 700 11px "DM Sans";
+}
+.mobile-notification-panel,
+.mobile-notification-trigger {
+  display: none;
+}
 .add {
   display: flex;
   align-items: center;
@@ -1488,6 +1584,25 @@ article footer button {
     background: #fffefa;
     color: #42544a;
   }
+  .mobile-topbar-actions {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+  }
+  .mobile-notification-trigger {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #dfe4da;
+    border-radius: 10px;
+    background: #fffefa;
+    color: #42544a;
+  }
+  .mobile-notification-trigger .notification-badge {
+    border-color: #fffefa;
+  }
   header {
     min-height: 64px;
     padding: 11px 0;
@@ -1502,8 +1617,16 @@ article footer button {
   }
   header > .header-action,
   header > .add,
-  header > .icon {
+  header > .icon,
+  header > .notification-wrap {
     display: none;
+  }
+  .mobile-notification-panel {
+    display: block;
+    margin: -2px 0 14px;
+  }
+  .mobile-notification-panel .notification-popover {
+    width: 100%;
   }
   .hero {
     padding: 38px 0 32px;

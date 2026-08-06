@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { AuthPage } from "../features/auth/AuthPage";
+import { NotificationPopover } from "../features/knowledge/NotificationPopover";
 import {
   clearSession,
   getSession,
@@ -41,6 +42,7 @@ import {
   type Detail,
   type Entry,
   type Idea,
+  type NotificationSummary,
   type Ship,
   type Source,
 } from "../types/knowledge";
@@ -80,7 +82,14 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
     [archiveOpen, setArchiveOpen] = useState(false),
     [graphOpen, setGraphOpen] = useState(false),
     [mobileMenuOpen, setMobileMenuOpen] = useState(false),
+    [notificationOpen, setNotificationOpen] = useState(false),
+    [notifications, setNotifications] = useState<NotificationSummary>({
+      unreadCount: 0,
+      notification: null,
+    }),
     [notice, setNotice] = useState("");
+  const refreshNotifications = () =>
+    api<NotificationSummary>("/api/notifications").then(setNotifications);
   const load = async () => {
     try {
       const [d, e, s, h] = await Promise.all([
@@ -117,6 +126,18 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
   useEffect(() => {
     void load();
   }, []);
+  useEffect(() => {
+    void refreshNotifications().catch(() => undefined);
+    const interval = window.setInterval(
+      () => void refreshNotifications().catch(() => undefined),
+      45000,
+    );
+    return () => window.clearInterval(interval);
+  }, []);
+  const markNotificationsRead = async () => {
+    await api("/api/notifications/read", { method: "POST" });
+    setNotifications({ unreadCount: 0, notification: null });
+  };
   const shown = useMemo(
     () =>
       entries.filter((entry) => {
@@ -239,13 +260,27 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
             </span>
             <span>Knowledge Hub</span>
           </a>
-          <button
-            className="mobile-menu-trigger"
-            aria-label="Open actions"
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <MoreHorizontal size={22} />
-          </button>
+          <div className="mobile-topbar-actions">
+            <button
+              className="mobile-notification-trigger"
+              aria-label={`Notifications${notifications.unreadCount ? `, ${notifications.unreadCount} unread` : ""}`}
+              onClick={() => setNotificationOpen((value) => !value)}
+            >
+              <Bell size={20} />
+              {notifications.unreadCount > 0 && (
+                <span className="notification-badge">
+                  {notifications.unreadCount > 9 ? "9+" : notifications.unreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              className="mobile-menu-trigger"
+              aria-label="Open actions"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <MoreHorizontal size={22} />
+            </button>
+          </div>
         </div>
         <header>
           <div className="search">
@@ -256,9 +291,27 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
               placeholder="Search your mind..."
             />
           </div>
-          <button className="icon" onClick={() => setActive("all")}>
-            <Bell size={19} />
-          </button>
+          <div className="notification-wrap">
+            <button
+              className="icon notification-trigger"
+              aria-label={`Notifications${notifications.unreadCount ? `, ${notifications.unreadCount} unread` : ""}`}
+              aria-expanded={notificationOpen}
+              onClick={() => setNotificationOpen((value) => !value)}
+            >
+              <Bell size={19} />
+              {notifications.unreadCount > 0 && (
+                <span className="notification-badge">
+                  {notifications.unreadCount > 9 ? "9+" : notifications.unreadCount}
+                </span>
+              )}
+            </button>
+            {notificationOpen && (
+              <NotificationPopover
+                summary={notifications}
+                markRead={() => void markNotificationsRead()}
+              />
+            )}
+          </div>
           {session.user.role === "admin" && (
             <button
               className="ghost header-action"
@@ -295,6 +348,14 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
             </button>
           )}
         </header>
+        {notificationOpen && (
+          <div className="mobile-notification-panel">
+            <NotificationPopover
+              summary={notifications}
+              markRead={() => void markNotificationsRead()}
+            />
+          </div>
+        )}
         {notice && (
           <div className="notice">
             {notice}

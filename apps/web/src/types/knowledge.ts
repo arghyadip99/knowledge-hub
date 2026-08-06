@@ -73,3 +73,13 @@ export const emptyDashboard: Dashboard = {
   inbox: 0,
   due: 0,
 };
+
+export type NotificationSummary = {
+  unreadCount: number;
+  notification: null | {
+    id: string;
+    count: number;
+    latestEntryTitle: string;
+    publishedAt?: string;
+  };
+};

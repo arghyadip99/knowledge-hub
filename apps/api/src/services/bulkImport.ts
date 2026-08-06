@@ -9,6 +9,7 @@ import {
   TranscriptChunk,
 } from "../models/Knowledge.js";
 import type { KnowledgeImport } from "../schemas/import.js";
+import { queuePublishedKnowledge } from "./notifications.js";
 
 const clean = <T extends Record<string, unknown>>(data: T) =>
   Object.fromEntries(
@@ -130,6 +131,12 @@ export async function importKnowledge(payload: KnowledgeImport) {
         reminderFrequency: action.reminderFrequency,
       })),
     );
+    if (["distilled", "applied"].includes(entry.status))
+      await queuePublishedKnowledge(
+        entry._id,
+        entry.title,
+        entry.approvedAt || undefined,
+      );
     return {
       sourceId,
       entryId,

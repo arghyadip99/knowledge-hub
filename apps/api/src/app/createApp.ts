@@ -148,6 +148,7 @@ app.get(
       ]);
     res.json({
       database: mongoose.connection.name,
+      host: mongoose.connection.host,
       connection: mongoose.connection.readyState === 1 ? "connected" : "unknown",
       counts: { knowledgeEntries, visibleEntries, sources, users },
     });

@@ -96,11 +96,12 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
       if (!e.length && session.user.role === "admin") {
         void api<{
           database: string;
+          host: string;
           counts: { knowledgeEntries: number; visibleEntries: number };
         }>("/api/debug/database")
           .then((diagnostic) =>
             setNotice(
-              `Database check: ${diagnostic.database} has ${diagnostic.counts.visibleEntries} visible cards (${diagnostic.counts.knowledgeEntries} total).`,
+              `Database check: ${diagnostic.database} on ${diagnostic.host} has ${diagnostic.counts.visibleEntries} visible cards (${diagnostic.counts.knowledgeEntries} total).`,
             ),
           )
           .catch(() => undefined);

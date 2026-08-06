@@ -11,9 +11,11 @@ export function KnowledgePage({ id }: { id: string }) {
   const [actionText, setActionText] = useState("");
   const [reflection, setReflection] = useState("");
   const [saving, setSaving] = useState(false);
+  const [lessonPage, setLessonPage] = useState(1);
 
   const reload = () => api<Detail>(`/api/knowledge/${id}`).then(setDetail);
   useEffect(() => {
+    setLessonPage(1);
     void reload().catch((requestError) => setError(requestError.message));
   }, [id]);
 
@@ -32,6 +34,13 @@ export function KnowledgePage({ id }: { id: string }) {
     );
 
   const { entry, source, ideas, quotes, actions, ships } = detail;
+  const lessonsPerPage = 5;
+  const lessonPageCount = Math.max(1, Math.ceil(ideas.length / lessonsPerPage));
+  const currentLessonPage = Math.min(lessonPage, lessonPageCount);
+  const visibleLessons = ideas.slice(
+    (currentLessonPage - 1) * lessonsPerPage,
+    currentLessonPage * lessonsPerPage,
+  );
   const addAction = async () => {
     if (!entry || !actionText.trim()) return;
     setSaving(true);
@@ -109,16 +118,55 @@ export function KnowledgePage({ id }: { id: string }) {
           </section>
           <EngagementPanel entry={entry} onChange={updateEngagement} />
           <section className="route-section">
-            <p className="eyebrow">LESSONS</p>
-            {ideas.map((idea, index) => (
+            <div className="lesson-heading">
+              <p className="eyebrow">LESSONS</p>
+              {ideas.length > lessonsPerPage && (
+                <span>
+                  {Math.min(
+                    (currentLessonPage - 1) * lessonsPerPage + 1,
+                    ideas.length,
+                  )}
+                  –{Math.min(currentLessonPage * lessonsPerPage, ideas.length)} of{" "}
+                  {ideas.length}
+                </span>
+              )}
+            </div>
+            {visibleLessons.map((idea, index) => (
               <article className="route-lesson" key={idea._id}>
-                <b>{String(index + 1).padStart(2, "0")}</b>
+                <b>
+                  {String(
+                    (currentLessonPage - 1) * lessonsPerPage + index + 1,
+                  ).padStart(2, "0")}
+                </b>
                 <div>
                   <h3>{idea.title}</h3>
                   <p>{idea.explanation}</p>
                 </div>
               </article>
             ))}
+            {ideas.length > lessonsPerPage && (
+              <nav className="pagination lesson-pagination" aria-label="Lesson pages">
+                <button
+                  disabled={currentLessonPage === 1}
+                  onClick={() =>
+                    setLessonPage((page) => Math.max(1, page - 1))
+                  }
+                >
+                  Previous lessons
+                </button>
+                <span>
+                  Page {currentLessonPage} of {lessonPageCount}
+                </span>
+                <button
+                  disabled={currentLessonPage === lessonPageCount}
+                  onClick={() =>
+                    setLessonPage((page) => Math.min(lessonPageCount, page + 1))
+                  }
+                >
+                  Next lessons
+                </button>
+              </nav>
+            )}
           </section>
           {quotes.length > 0 && (
             <section className="route-section">

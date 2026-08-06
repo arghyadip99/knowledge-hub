@@ -208,6 +208,16 @@
 .route-section {
   margin-top: 38px;
 }
+.lesson-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.lesson-heading span {
+  color: #819087;
+  font: 10px "DM Mono";
+}
 .route-lesson {
   display: flex;
   gap: 17px;
@@ -367,6 +377,10 @@
   font: 600 11px "DM Sans";
 }
 .pagination button:disabled { opacity: .42; cursor: not-allowed; }
+.lesson-pagination {
+  justify-content: flex-start;
+  margin-top: 20px;
+}
 .edit-modal label {
   display: grid;
   gap: 6px;

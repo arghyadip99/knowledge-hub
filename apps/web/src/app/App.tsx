@@ -174,6 +174,21 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
       setNotice(e instanceof Error ? e.message : "Unable to archive card");
     }
   };
+  const destroy = async (entry: Entry) => {
+    if (
+      !window.confirm(
+        `Permanently delete “${entry.title}”? This removes its source, lessons, comments and activity. This cannot be undone.`,
+      )
+    )
+      return;
+    try {
+      await api(`/api/knowledge/${entry._id}/permanent`, { method: "DELETE" });
+      setNotice("Knowledge card permanently deleted.");
+      await load();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Unable to delete card");
+    }
+  };
   const saveShips = async (entry: Entry, shipIds: string[]) => {
     await api(`/api/knowledge/${entry._id}`, {
       method: "PATCH",
@@ -433,6 +448,7 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
           capture={() => setCapture(true)}
           edit={setEditing}
           archive={archive}
+          destroy={destroy}
           flag={setFlagging}
           canManage={session.user.role === "admin"}
           onEngagementChange={updateEntryEngagement}
@@ -1029,6 +1045,7 @@ function Library({
   capture,
   edit,
   archive,
+  destroy,
   flag,
   canManage,
   onEngagementChange,
@@ -1039,10 +1056,19 @@ function Library({
   capture: () => void;
   edit: (entry: Entry) => void;
   archive: (entry: Entry) => Promise<void>;
+  destroy: (entry: Entry) => Promise<void>;
   flag: (entry: Entry) => void;
   canManage: boolean;
   onEngagementChange: (entryId: string, engagement: Engagement) => void;
 }) {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(entries.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageEntries = entries.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
   return (
     <>
       <div className="section-heading">
@@ -1057,7 +1083,7 @@ function Library({
         )}
       </div>
       <div className="feed">
-        {entries.slice(0, 12).map((entry) => (
+        {pageEntries.map((entry) => (
           <article key={entry._id}>
             <div className="entry-top">
               <span className="ship-pills">
@@ -1076,6 +1102,7 @@ function Library({
                   entry={entry}
                   edit={edit}
                   archive={archive}
+                  destroy={destroy}
                   flag={flag}
                 />
               )}
@@ -1122,6 +1149,25 @@ function Library({
           No knowledge cards here yet. Capture a source or select another ship.
         </div>
       )}
+      {entries.length > pageSize && (
+        <nav className="pagination" aria-label="Knowledge pages">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+          >
+            Previous
+          </button>
+          <span>
+            Page {currentPage} of {pageCount}
+          </span>
+          <button
+            disabled={currentPage === pageCount}
+            onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </>
   );
 }
@@ -1129,11 +1175,13 @@ function CardMenu({
   entry,
   edit,
   archive,
+  destroy,
   flag,
 }: {
   entry: Entry;
   edit: (entry: Entry) => void;
   archive: (entry: Entry) => Promise<void>;
+  destroy: (entry: Entry) => Promise<void>;
   flag: (entry: Entry) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -1175,6 +1223,16 @@ function CardMenu({
           >
             <Trash2 size={14} />
             Archive
+          </button>
+          <button
+            className="danger permanent-delete"
+            onClick={() => {
+              setOpen(false);
+              void destroy(entry);
+            }}
+          >
+            <Trash2 size={14} />
+            Delete permanently
           </button>
         </div>
       )}

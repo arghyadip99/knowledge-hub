@@ -572,6 +572,36 @@ app.delete(
     res.status(204).end();
   }),
 );
+// A permanent delete is deliberately separate from archive. It is admin-only via
+// the API write policy above and removes the source plus its dependent records.
+app.delete(
+  "/api/knowledge/:id/permanent",
+  asyncRoute(async (req, res) => {
+    const entry = await KnowledgeEntry.findById(id.parse(req.params.id));
+    if (!entry)
+      return res.status(404).json({ message: "Knowledge entry not found" });
+    await Promise.all([
+      Source.deleteOne({ _id: entry.sourceId }),
+      TranscriptChunk.deleteMany({ sourceId: entry.sourceId }),
+      AiRun.deleteMany({ sourceId: entry.sourceId }),
+      Quote.deleteMany({ knowledgeEntryId: entry._id }),
+      Idea.deleteMany({ knowledgeEntryId: entry._id }),
+      Action.deleteMany({ knowledgeEntryId: entry._id }),
+      Review.deleteMany({ knowledgeEntryId: entry._id }),
+      QuizAttempt.deleteMany({ knowledgeEntryId: entry._id }),
+      Connection.deleteMany({
+        $or: [{ fromId: entry._id }, { toId: entry._id }],
+      }),
+      KnowledgeEngagement.deleteOne({ knowledgeEntryId: entry._id }),
+      ReaderNotification.updateMany(
+        { unreadEntryIds: entry._id },
+        { $pull: { unreadEntryIds: entry._id } },
+      ),
+      KnowledgeEntry.deleteOne({ _id: entry._id }),
+    ]);
+    res.status(204).end();
+  }),
+);
 app.post(
   "/api/knowledge/:id/restore",
   asyncRoute(async (req, res) => {

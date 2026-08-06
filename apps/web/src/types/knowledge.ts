@@ -47,6 +47,21 @@ export type Entry = {
   ideas: Idea[];
   actions: Action[];
   source?: Source;
+  engagement: Engagement | null;
+};
+
+export type Engagement = {
+  id: string;
+  resonatedCount: number;
+  commentCount: number;
+  shareCount: number;
+  viewerResonated: boolean;
+  comments: {
+    id: string;
+    authorName: string;
+    text: string;
+    createdAt: string;
+  }[];
 };
 
 export type Detail = {

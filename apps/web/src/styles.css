@@ -972,6 +972,60 @@ h3 {
   color: #738078;
   font: 10px "DM Mono";
 }
+.engagement {
+  margin-top: 16px;
+  border-top: 1px solid #edf0e9;
+}
+.engagement-actions {
+  display: flex;
+  gap: 2px;
+  padding-top: 11px;
+}
+.engagement-actions button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #718077;
+  font: 600 11px "DM Sans";
+}
+.engagement-actions button:hover,
+.engagement-actions button.active {
+  background: #f1f5eb;
+  color: #53794b;
+}
+.engagement-actions button.active { color: #b65f55; }
+.engagement-actions span:empty { display: none; }
+.comments-panel {
+  margin-top: 4px;
+  padding: 11px;
+  border-radius: 8px;
+  background: #f6f7f3;
+}
+.comment-list { max-height: 190px; overflow-y: auto; }
+.comment-item {
+  display: block;
+  min-height: 0;
+  margin: 0;
+  padding: 9px 0;
+  border: 0;
+  border-bottom: 1px solid #e2e7df;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.comment-item:last-child { border-bottom: 0; }
+.comment-item b { color: #405441; font-size: 11px; }
+.comment-item time { margin-left: 7px; color: #99a49a; font: 9px "DM Mono"; }
+.comment-item p, .comments-empty { margin: 4px 0 0; color: #657369; font-size: 11px; line-height: 1.45; }
+.comments-empty { padding: 3px 0 10px; }
+.comment-compose { display: flex; gap: 7px; margin-top: 8px; }
+.comment-compose input { min-width: 0; flex: 1; padding: 9px 10px; border: 1px solid #dce3d8; border-radius: 6px; background: #fffefa; font: 11px "DM Sans"; }
+.comment-compose button { display: grid; place-items: center; width: 34px; border: 0; border-radius: 6px; background: #52764d; color: white; }
+.comment-compose button:disabled { opacity: .45; }
 article footer {
   display: flex;
   align-items: center;

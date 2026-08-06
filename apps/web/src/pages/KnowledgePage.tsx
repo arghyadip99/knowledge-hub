@@ -1,8 +1,9 @@
 import { ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ListenPanel } from "../features/knowledge/ListenPanel";
+import { EngagementPanel } from "../features/knowledge/EngagementPanel";
 import { api } from "../lib/api";
-import type { Detail } from "../types/knowledge";
+import type { Detail, Engagement } from "../types/knowledge";
 
 export function KnowledgePage({ id }: { id: string }) {
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -58,6 +59,12 @@ export function KnowledgePage({ id }: { id: string }) {
       setSaving(false);
     }
   };
+  const updateEngagement = (engagement: Engagement) =>
+    setDetail((current) =>
+      current?.entry
+        ? { ...current, entry: { ...current.entry, engagement } }
+        : current,
+    );
 
   return (
     <main className="route-page">
@@ -95,6 +102,7 @@ export function KnowledgePage({ id }: { id: string }) {
             <h2>{entry.centralThesis}</h2>
             <p>{entry.summary}</p>
           </section>
+          <EngagementPanel entry={entry} onChange={updateEngagement} />
           <section className="route-section">
             <p className="eyebrow">LESSONS</p>
             {ideas.map((idea, index) => (

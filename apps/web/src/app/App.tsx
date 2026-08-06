@@ -28,6 +28,7 @@ import {
 import { api } from "../lib/api";
 import { AuthPage } from "../features/auth/AuthPage";
 import { NotificationPopover } from "../features/knowledge/NotificationPopover";
+import { EngagementPanel } from "../features/knowledge/EngagementPanel";
 import {
   clearSession,
   getSession,
@@ -40,6 +41,7 @@ import {
   type Action,
   type Dashboard,
   type Detail,
+  type Engagement,
   type Entry,
   type Idea,
   type NotificationSummary,
@@ -138,6 +140,12 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
     await api("/api/notifications/read", { method: "POST" });
     setNotifications({ unreadCount: 0, notification: null });
   };
+  const updateEntryEngagement = (entryId: string, engagement: Engagement) =>
+    setEntries((current) =>
+      current.map((entry) =>
+        entry._id === entryId ? { ...entry, engagement } : entry,
+      ),
+    );
   const shown = useMemo(
     () =>
       entries.filter((entry) => {
@@ -427,6 +435,7 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
           archive={archive}
           flag={setFlagging}
           canManage={session.user.role === "admin"}
+          onEngagementChange={updateEntryEngagement}
         />
       </section>
       <nav className="mobile-nav" aria-label="Mobile navigation">
@@ -1022,6 +1031,7 @@ function Library({
   archive,
   flag,
   canManage,
+  onEngagementChange,
 }: {
   entries: Entry[];
   sources: Source[];
@@ -1031,6 +1041,7 @@ function Library({
   archive: (entry: Entry) => Promise<void>;
   flag: (entry: Entry) => void;
   canManage: boolean;
+  onEngagementChange: (entryId: string, engagement: Engagement) => void;
 }) {
   return (
     <>
@@ -1079,6 +1090,10 @@ function Library({
                 <span key={tag}>#{tag}</span>
               ))}
             </div>
+            <EngagementPanel
+              entry={entry}
+              onChange={(engagement) => onEngagementChange(entry._id, engagement)}
+            />
             <footer>
               <span className={"state " + entry.status}>
                 {entry.status === "applied" ? "In practice" : "Distilled"}

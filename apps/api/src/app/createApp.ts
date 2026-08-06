@@ -21,6 +21,7 @@ import {
 } from "../models/Knowledge.js";
 import { User } from "../models/User.js";
 import { ReaderNotification } from "../models/Notification.js";
+import { KnowledgeEngagement } from "../models/Engagement.js";
 import { openapi } from "../docs/openapi.js";
 import { bulkKnowledgeImportSchema } from "../schemas/import.js";
 import { importKnowledge, recordImportBatch } from "../services/bulkImport.js";
@@ -36,6 +37,7 @@ import { queuePublishedKnowledge } from "../services/notifications.js";
 import {
   findKnowledgeDetail,
   findKnowledgeLibrary,
+  serializeEngagement,
 } from "../repositories/knowledgeRepository.js";
 import {
   actionInput,
@@ -133,7 +135,9 @@ app.post(
 // Every other API endpoint requires a session; writes additionally require the admin role.
 app.use("/api", requireAuth);
 app.use("/api", (req, res, next) =>
-  req.method === "GET" || req.path === "/notifications/read"
+  req.method === "GET" ||
+  req.path === "/notifications/read" ||
+  /^\/knowledge\/[^/]+\/(resonate|comments|share)$/.test(req.path)
     ? next()
     : requireAdmin(req, res, next),
 );
@@ -415,6 +419,9 @@ app.delete(
       entry
         ? Action.deleteMany({ knowledgeEntryId: entry._id })
         : Promise.resolve(),
+      entry
+        ? KnowledgeEngagement.deleteOne({ knowledgeEntryId: entry._id })
+        : Promise.resolve(),
       KnowledgeEntry.deleteOne({ sourceId }),
     ]);
     res.status(204).end();
@@ -432,13 +439,13 @@ app.get(
           : { status: { $ne: "archived" } };
     if (req.query.ship) filter.shipIds = id.parse(String(req.query.ship));
     if (req.query.search) filter.$text = { $search: String(req.query.search) };
-    res.json(await findKnowledgeLibrary(filter));
+    res.json(await findKnowledgeLibrary(filter, req.user?.id));
   }),
 );
 app.get(
   "/api/knowledge/:id",
   asyncRoute(async (req: AuthenticatedRequest, res) => {
-    const detail = await findKnowledgeDetail(id.parse(req.params.id));
+    const detail = await findKnowledgeDetail(id.parse(req.params.id), req.user?.id);
     if (!detail)
       return res.status(404).json({ message: "Knowledge entry not found" });
     if (
@@ -447,6 +454,85 @@ app.get(
     )
       return res.status(404).json({ message: "Knowledge entry not found" });
     res.json(detail);
+  }),
+);
+app.post(
+  "/api/knowledge/:id/resonate",
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const entryId = id.parse(req.params.id);
+    const entry = await KnowledgeEntry.findById(entryId).select("status").lean();
+    if (
+      !entry ||
+      (req.user?.role === "reader" &&
+        !["distilled", "applied"].includes(entry.status))
+    )
+      return res.status(404).json({ message: "Knowledge entry not found" });
+    const userId = req.user?.id;
+    const current = await KnowledgeEngagement.findOne({ knowledgeEntryId: entryId });
+    const hasResonated = current?.resonatedBy.some(
+      (value) => String(value) === userId,
+    );
+    const engagement = await KnowledgeEngagement.findOneAndUpdate(
+      { knowledgeEntryId: entryId },
+      hasResonated
+        ? { $pull: { resonatedBy: userId } }
+        : { $addToSet: { resonatedBy: userId } },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ).lean();
+    res.json(serializeEngagement(engagement, userId));
+  }),
+);
+app.post(
+  "/api/knowledge/:id/comments",
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const entryId = id.parse(req.params.id);
+    const data = z
+      .object({ text: z.string().trim().min(1).max(1000) })
+      .parse(req.body);
+    const [entry, user] = await Promise.all([
+      KnowledgeEntry.findById(entryId).select("status").lean(),
+      User.findById(req.user?.id).select("displayName").lean(),
+    ]);
+    if (
+      !entry ||
+      !user ||
+      (req.user?.role === "reader" &&
+        !["distilled", "applied"].includes(entry.status))
+    )
+      return res.status(404).json({ message: "Knowledge entry not found" });
+    const engagement = await KnowledgeEngagement.findOneAndUpdate(
+      { knowledgeEntryId: entryId },
+      {
+        $push: {
+          comments: {
+            userId: req.user?.id,
+            authorName: user.displayName,
+            text: data.text,
+          },
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ).lean();
+    res.status(201).json(serializeEngagement(engagement, req.user?.id));
+  }),
+);
+app.post(
+  "/api/knowledge/:id/share",
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const entryId = id.parse(req.params.id);
+    const entry = await KnowledgeEntry.findById(entryId).select("status").lean();
+    if (
+      !entry ||
+      (req.user?.role === "reader" &&
+        !["distilled", "applied"].includes(entry.status))
+    )
+      return res.status(404).json({ message: "Knowledge entry not found" });
+    const engagement = await KnowledgeEngagement.findOneAndUpdate(
+      { knowledgeEntryId: entryId },
+      { $inc: { shareCount: 1 } },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ).lean();
+    res.json(serializeEngagement(engagement, req.user?.id));
   }),
 );
 app.patch(

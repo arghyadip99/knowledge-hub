@@ -88,6 +88,7 @@ The ready-to-copy ChatGPT extraction contract is in [docs/chatgpt-import-templat
 - `GET/PATCH /api/knowledge/:id`
 - `POST /api/knowledge/:id/actions`
 - `POST /api/knowledge/:id/reviews`
+- `GET /api/actions?status=` — list actions with their parent card title
 - `PATCH /api/actions/:id`
 - `GET /api/reminders`
 - `GET /api/dashboard`, `GET /api/config`, `GET /api/creators`

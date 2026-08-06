@@ -71,6 +71,11 @@ export function KnowledgePage({ id }: { id: string }) {
       <a className="back" href="/">
         ← Back to library
       </a>
+      {source.thumbnailUrl && (
+        <div className="route-thumb">
+          <img src={source.thumbnailUrl} alt="" loading="lazy" />
+        </div>
+      )}
       <header className="route-header">
         <p className="eyebrow">
           {source.type} ·{" "}

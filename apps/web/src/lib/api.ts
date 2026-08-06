@@ -16,7 +16,14 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.message || "Something went wrong");
+    const validationMessages = Object.values(
+      body.issues?.fieldErrors || {},
+    ).flat() as string[];
+    throw new Error(
+      validationMessages.length
+        ? validationMessages.join(" · ")
+        : body.message || "Something went wrong",
+    );
   }
 
   return response.status === 204 ? (undefined as T) : response.json();

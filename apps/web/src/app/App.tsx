@@ -79,6 +79,7 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
     [importOpen, setImportOpen] = useState(false),
     [archiveOpen, setArchiveOpen] = useState(false),
     [graphOpen, setGraphOpen] = useState(false),
+    [mobileMenuOpen, setMobileMenuOpen] = useState(false),
     [notice, setNotice] = useState("");
   const load = async () => {
     try {
@@ -218,6 +219,21 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
         </div>
       </aside>
       <section className="content">
+        <div className="mobile-topbar">
+          <a className="mobile-brand" href="/" aria-label="Knowledge Hub home">
+            <span className="brand-mark">
+              <Sparkles size={17} />
+            </span>
+            <span>Knowledge Hub</span>
+          </a>
+          <button
+            className="mobile-menu-trigger"
+            aria-label="Open actions"
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <MoreHorizontal size={22} />
+          </button>
+        </div>
         <header>
           <div className="search">
             <Search size={18} />
@@ -367,6 +383,65 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
           <span>Log out</span>
         </button>
       </nav>
+      {mobileMenuOpen && (
+        <div className="overlay mobile-actions-overlay">
+          <section className="modal mobile-actions-sheet" aria-label="Quick actions">
+            <button
+              className="close"
+              aria-label="Close actions"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <X />
+            </button>
+            <p className="eyebrow">QUICK ACTIONS</p>
+            <h2>Keep moving your thinking forward.</h2>
+            <div className="mobile-action-list">
+              <button
+                onClick={() => {
+                  setGraphOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <Brain size={18} /> Knowledge graph
+              </button>
+              <button onClick={() => window.location.assign("/ships")}>
+                <ShipWheel size={18} /> Manage ships
+              </button>
+              {session.user.role === "admin" && (
+                <>
+                  <button
+                    onClick={() => {
+                      setQuizOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <Lightbulb size={18} /> Recall quiz
+                  </button>
+                  <button
+                    onClick={() => {
+                      setImportOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <FileText size={18} /> Import JSON
+                  </button>
+                  <button
+                    onClick={() => {
+                      setArchiveOpen(true);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <ArchiveRestore size={18} /> Archive
+                  </button>
+                </>
+              )}
+              <button className="mobile-logout" onClick={clearSession}>
+                <ChevronRight size={18} /> Log out
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
       {capture && (
         <Capture
           close={() => setCapture(false)}

@@ -19,6 +19,7 @@ import {
   TranscriptChunk,
   focusAreas,
 } from "../models/Knowledge.js";
+import { User } from "../models/User.js";
 import { openapi } from "../docs/openapi.js";
 import { bulkKnowledgeImportSchema } from "../schemas/import.js";
 import { importKnowledge, recordImportBatch } from "../services/bulkImport.js";
@@ -131,6 +132,26 @@ app.post(
 app.use("/api", requireAuth);
 app.use("/api", (req, res, next) =>
   req.method === "GET" ? next() : requireAdmin(req, res, next),
+);
+app.get(
+  "/api/debug/database",
+  requireAdmin,
+  asyncRoute(async (_req, res) => {
+    const [knowledgeEntries, visibleEntries, sources, users] =
+      await Promise.all([
+        KnowledgeEntry.countDocuments(),
+        KnowledgeEntry.countDocuments({
+          status: { $in: ["distilled", "applied"] },
+        }),
+        Source.countDocuments(),
+        User.countDocuments(),
+      ]);
+    res.json({
+      database: mongoose.connection.name,
+      connection: mongoose.connection.readyState === 1 ? "connected" : "unknown",
+      counts: { knowledgeEntries, visibleEntries, sources, users },
+    });
+  }),
 );
 app.get(
   "/api/v1/imports",

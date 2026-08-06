@@ -1429,6 +1429,10 @@ article footer button {
 .mobile-nav {
   display: none;
 }
+.mobile-topbar,
+.mobile-actions-overlay {
+  display: none;
+}
 
 @media (max-width: 1100px) {
   .content {
@@ -1455,31 +1459,51 @@ article footer button {
   .content {
     padding: 0 20px 38px;
   }
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 62px;
+    border-bottom: 1px solid #e4e5df;
+  }
+  .mobile-brand {
+    display: inline-flex;
+    gap: 9px;
+    align-items: center;
+    color: #24362c;
+    text-decoration: none;
+    font: 700 13px "DM Sans";
+  }
+  .mobile-brand .brand-mark {
+    width: 29px;
+    height: 29px;
+  }
+  .mobile-menu-trigger {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #dfe4da;
+    border-radius: 10px;
+    background: #fffefa;
+    color: #42544a;
+  }
   header {
-    height: auto;
-    min-height: 72px;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px 0;
+    min-height: 64px;
+    padding: 11px 0;
+    border-bottom: 0;
   }
   .search {
-    order: -1;
-    flex-basis: 100%;
     min-height: 42px;
     padding: 0 11px;
     border: 1px solid #e0e2db;
     border-radius: 9px;
     background: #fffefa;
   }
-  .header-action,
-  header .add,
-  header .icon {
-    min-height: 38px;
-    padding: 8px 10px;
-    font-size: 11px;
-  }
-  header .add {
-    font-size: 11px;
+  header > .header-action,
+  header > .add,
+  header > .icon {
+    display: none;
   }
   .hero {
     padding: 38px 0 32px;
@@ -1533,6 +1557,40 @@ article footer button {
     color: #34523d;
     font-size: 8px;
   }
+  .mobile-actions-overlay {
+    display: grid;
+  }
+  .mobile-actions-sheet {
+    width: min(100%, 560px);
+  }
+  .mobile-actions-sheet h2 {
+    max-width: 340px;
+    margin: 0;
+    font: 600 28px/1.15 "Playfair Display";
+  }
+  .mobile-action-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 22px;
+  }
+  .mobile-action-list button {
+    display: flex;
+    gap: 11px;
+    align-items: center;
+    min-height: 48px;
+    padding: 12px;
+    border: 1px solid #dfe5da;
+    border-radius: 9px;
+    background: #fffefa;
+    color: #405148;
+    text-align: left;
+    font: 600 13px "DM Sans";
+  }
+  .mobile-action-list .mobile-logout {
+    margin-top: 5px;
+    border-color: #efdbd5;
+    color: #9b5547;
+  }
   .route-page {
     padding: 28px 20px 94px;
   }
@@ -1568,16 +1626,6 @@ article footer button {
   }
   .content {
     padding: 0 15px 28px;
-  }
-  header {
-    gap: 6px;
-  }
-  .header-action {
-    flex: 1 1 auto;
-  }
-  header .add,
-  header .icon {
-    flex: 0 0 auto;
   }
   .hero {
     padding: 30px 0 26px;
@@ -1674,6 +1722,9 @@ article footer button {
   .ship-modal h2 {
     padding-right: 28px;
     font-size: 25px;
+  }
+  .mobile-actions-sheet {
+    width: 100%;
   }
   .close {
     top: 13px;

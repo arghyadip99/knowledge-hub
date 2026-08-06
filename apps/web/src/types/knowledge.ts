@@ -12,6 +12,7 @@ export type Source = {
   creatorName: string;
   type: string;
   url?: string;
+  thumbnailUrl?: string;
   rawText: string;
   status: string;
   transcriptStatus: string;
@@ -28,9 +29,13 @@ export type Idea = {
 
 export type Action = {
   _id: string;
+  knowledgeEntryId?: string;
   text: string;
-  status: string;
+  status: "open" | "completed" | "dismissed";
   reminderFrequency: string;
+  dueAt?: string;
+  completedAt?: string;
+  entryTitle?: string;
 };
 
 export type Entry = {

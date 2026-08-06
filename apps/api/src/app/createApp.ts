@@ -670,6 +670,36 @@ app.patch(
     res.json(action);
   }),
 );
+app.get(
+  "/api/actions",
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const entryFilter: Record<string, unknown> =
+      req.user?.role === "reader"
+        ? { status: { $in: ["distilled", "applied"] } }
+        : { status: { $ne: "archived" } };
+    const entries = await KnowledgeEntry.find(entryFilter)
+      .select("title")
+      .lean();
+    const entryById = new Map(
+      entries.map((entry) => [String(entry._id), entry]),
+    );
+    const actionFilter: Record<string, unknown> = {
+      knowledgeEntryId: { $in: entries.map((entry) => entry._id) },
+    };
+    if (typeof req.query.status === "string")
+      actionFilter.status = req.query.status;
+    const actions = await Action.find(actionFilter)
+      .sort({ dueAt: 1, createdAt: -1 })
+      .lean();
+    res.json(
+      actions.map((action) => ({
+        ...action,
+        entryTitle:
+          entryById.get(String(action.knowledgeEntryId))?.title || "Untitled",
+      })),
+    );
+  }),
+);
 app.patch(
   "/api/ideas/:id",
   asyncRoute(async (req, res) => {

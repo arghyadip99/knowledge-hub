@@ -12,9 +12,9 @@ import {
   FileText,
   FolderHeart,
   Lightbulb,
+  ListChecks,
   MoreHorizontal,
   Pencil,
-  Pause,
   Play,
   Plus,
   Search,
@@ -22,7 +22,6 @@ import {
   Sparkles,
   Tag,
   Trash2,
-  Volume2,
   X,
 } from "lucide-react";
 import { api } from "../lib/api";
@@ -36,6 +35,7 @@ import {
 } from "../features/auth/session";
 import { KnowledgePage as KnowledgeRoutePage } from "../pages/KnowledgePage";
 import { ShipsPage as ShipsRoutePage } from "../pages/ShipsPage";
+import { ActionsPage as ActionsRoutePage } from "../pages/ActionsPage";
 import {
   emptyDashboard as blank,
   type Action,
@@ -43,7 +43,6 @@ import {
   type Detail,
   type Engagement,
   type Entry,
-  type Idea,
   type NotificationSummary,
   type Ship,
   type Source,
@@ -66,6 +65,7 @@ function App() {
 function AuthenticatedApp({ session }: { session: AuthSession }) {
   const path = window.location.pathname;
   if (path === "/ships") return <ShipsRoutePage />;
+  if (path === "/actions") return <ActionsRoutePage />;
   const knowledgeMatch = path.match(/^\/knowledge\/([a-f\d]{24})$/i);
   if (knowledgeMatch) return <KnowledgeRoutePage id={knowledgeMatch[1]} />;
   const [dashboard, setDashboard] = useState(blank),
@@ -232,6 +232,13 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
             onClick={() => setActive("applied")}
           />
           <Nav
+            icon={<ListChecks />}
+            label="Actions"
+            count={dashboard.due}
+            active={false}
+            onClick={() => window.location.assign("/actions")}
+          />
+          <Nav
             icon={<ShipWheel />}
             label="Manage Ships"
             count={ships.length}
@@ -261,13 +268,16 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
           </button>
         </nav>
         <div className="sidebar-bottom">
-          <div className="streak">
+          <button
+            className="streak"
+            onClick={() => window.location.assign("/actions")}
+          >
             ✦{" "}
             <span>
               {dashboard.due} actions due
               <small>Turn insight into evidence</small>
             </span>
-          </div>
+          </button>
           <button className="profile" onClick={clearSession} title="Log out">
             <span>{session.user.displayName.slice(0, 2).toUpperCase()}</span>
             {session.user.displayName} · {session.user.role}
@@ -506,6 +516,9 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
               <button onClick={() => window.location.assign("/ships")}>
                 <ShipWheel size={18} /> Manage ships
               </button>
+              <button onClick={() => window.location.assign("/actions")}>
+                <ListChecks size={18} /> Actions
+              </button>
               {session.user.role === "admin" && (
                 <>
                   <button
@@ -605,405 +618,6 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
     </main>
   );
 }
-function KnowledgePage({ id }: { id: string }) {
-  const [detail, setDetail] = useState<Detail | null>(null),
-    [error, setError] = useState(""),
-    [actionText, setActionText] = useState(""),
-    [reflection, setReflection] = useState(""),
-    [saving, setSaving] = useState(false);
-  useEffect(() => {
-    void api<Detail>(`/api/knowledge/${id}`)
-      .then(setDetail)
-      .catch((error) => setError(error.message));
-  }, [id]);
-  if (error)
-    return (
-      <main className="route-page">
-        <a href="/">← Back to library</a>
-        <p>{error}</p>
-      </main>
-    );
-  if (!detail)
-    return (
-      <main className="route-page">
-        <p>Loading knowledge…</p>
-      </main>
-    );
-  const { entry, source, ideas, quotes, actions, ships } = detail;
-  const addAction = async () => {
-    if (!entry || !actionText.trim()) return;
-    setSaving(true);
-    try {
-      await api(`/api/knowledge/${entry._id}/actions`, {
-        method: "POST",
-        body: JSON.stringify({ text: actionText, reminderFrequency: "weekly" }),
-      });
-      setActionText("");
-      setDetail(await api<Detail>(`/api/knowledge/${id}`));
-    } finally {
-      setSaving(false);
-    }
-  };
-  const saveReflection = async () => {
-    if (!entry || !reflection.trim()) return;
-    setSaving(true);
-    try {
-      await api(`/api/knowledge/${entry._id}/reviews`, {
-        method: "POST",
-        body: JSON.stringify({ reflection, didIApplyIt: true }),
-      });
-      setReflection("");
-    } finally {
-      setSaving(false);
-    }
-  };
-  return (
-    <main className="route-page">
-      <a className="back" href="/">
-        ← Back to library
-      </a>
-      <header className="route-header">
-        <p className="eyebrow">
-          {source.type} ·{" "}
-          {ships.map((ship) => ship.name).join(" · ") || "Unassigned"}
-        </p>
-        <h1>{entry?.title || source.title}</h1>
-        <p>{entry?.captainName || source.creatorName || "Personal source"}</p>
-        {source.url && (
-          <a
-            className="source-link"
-            href={source.url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open original source <ArrowUpRight size={15} />
-          </a>
-        )}
-      </header>
-      {entry && (
-        <>
-          <ListenPanel
-            title={entry.title}
-            thesis={entry.centralThesis}
-            summary={entry.summary}
-            lessons={ideas}
-          />
-          <section className="route-thesis">
-            <p className="eyebrow">CENTRAL THESIS</p>
-            <h2>{entry.centralThesis}</h2>
-            <p>{entry.summary}</p>
-          </section>
-          <section className="route-section">
-            <p className="eyebrow">LESSONS</p>
-            {ideas.map((idea, index) => (
-              <article className="route-lesson" key={idea._id}>
-                <b>{String(index + 1).padStart(2, "0")}</b>
-                <div>
-                  <h3>{idea.title}</h3>
-                  <p>{idea.explanation}</p>
-                </div>
-              </article>
-            ))}
-          </section>
-          {quotes.length > 0 && (
-            <section className="route-section">
-              <p className="eyebrow">QUOTES</p>
-              {quotes.map((quote) => (
-                <blockquote key={quote._id}>“{quote.text}”</blockquote>
-              ))}
-            </section>
-          )}
-          <section className="route-section application-panel">
-            <p className="eyebrow">PUT IT INTO PRACTICE</p>
-            <input
-              value={actionText}
-              onChange={(event) => setActionText(event.target.value)}
-              placeholder="One concrete action to try"
-            />
-            <button
-              className="add"
-              disabled={saving || !actionText.trim()}
-              onClick={() => void addAction()}
-            >
-              Add action
-            </button>
-            <div className="action-list">
-              {actions.map((action) => (
-                <p key={action._id}>
-                  • {action.text} <small>({action.reminderFrequency})</small>
-                </p>
-              ))}
-            </div>
-            <textarea
-              value={reflection}
-              onChange={(event) => setReflection(event.target.value)}
-              placeholder="What happened when you applied this?"
-              rows={3}
-            />
-            <button
-              className="ghost"
-              disabled={saving || !reflection.trim()}
-              onClick={() => void saveReflection()}
-            >
-              Save reflection
-            </button>
-          </section>
-        </>
-      )}
-    </main>
-  );
-}
-function ListenPanel({
-  title,
-  thesis,
-  summary,
-  lessons,
-}: {
-  title: string;
-  thesis: string;
-  summary: string;
-  lessons: Idea[];
-}) {
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [preference, setPreference] = useState<"female" | "male">("female");
-  const [speed, setSpeed] = useState(1);
-  const [speaking, setSpeaking] = useState(false);
-  const [paused, setPaused] = useState(false);
-
-  useEffect(() => {
-    if (!("speechSynthesis" in window)) return;
-    const refresh = () => setVoices(window.speechSynthesis.getVoices());
-    refresh();
-    window.speechSynthesis.addEventListener("voiceschanged", refresh);
-    return () => {
-      window.speechSynthesis.removeEventListener("voiceschanged", refresh);
-      window.speechSynthesis.cancel();
-    };
-  }, []);
-
-  const stop = () => {
-    window.speechSynthesis.cancel();
-    setSpeaking(false);
-    setPaused(false);
-  };
-
-  const speak = () => {
-    if (!("speechSynthesis" in window)) return;
-    stop();
-    const utterance = new SpeechSynthesisUtterance(
-      `${title}. Central thesis. ${thesis}. Summary. ${summary}. Key lessons. ${lessons
-        .map(
-          (lesson, index) =>
-            `${index + 1}. ${lesson.title}. ${lesson.explanation}`,
-        )
-        .join(" ")}`,
-    );
-    const voicePattern =
-      preference === "female"
-        ? /female|woman|zira|samantha|victoria|karen|moira/i
-        : /male|man|david|daniel|alex|fred/i;
-    utterance.voice =
-      voices.find((voice) => voicePattern.test(voice.name)) ||
-      voices[0] ||
-      null;
-    utterance.rate = speed;
-    utterance.onend = utterance.onerror = () => {
-      setSpeaking(false);
-      setPaused(false);
-    };
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const togglePause = () => {
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-      setPaused(false);
-    } else {
-      window.speechSynthesis.pause();
-      setPaused(true);
-    }
-  };
-
-  return (
-    <section className="listen-panel">
-      <div>
-        <p className="eyebrow">LISTEN TO THIS KNOWLEDGE</p>
-        <b>Make this card part of your commute.</b>
-        <small>
-          Uses the voices installed in your browser or operating system.
-        </small>
-      </div>
-      <div className="listen-controls">
-        <button
-          className={preference === "female" ? "selected" : ""}
-          onClick={() => setPreference("female")}
-        >
-          Female voice
-        </button>
-        <button
-          className={preference === "male" ? "selected" : ""}
-          onClick={() => setPreference("male")}
-        >
-          Male voice
-        </button>
-        <select
-          aria-label="Reading speed"
-          value={speed}
-          onChange={(event) => setSpeed(Number(event.target.value))}
-        >
-          {[0.75, 1, 1.25, 1.5, 2].map((value) => (
-            <option key={value} value={value}>
-              {value}×
-            </option>
-          ))}
-        </select>
-        {speaking ? (
-          <>
-            <button className="ghost" onClick={togglePause}>
-              {paused ? <Play size={15} /> : <Pause size={15} />}
-              {paused ? "Resume" : "Pause"}
-            </button>
-            <button className="stop-listening" onClick={stop}>
-              Stop
-            </button>
-          </>
-        ) : (
-          <button className="add" onClick={speak}>
-            <Volume2 size={16} />
-            Listen
-          </button>
-        )}
-      </div>
-    </section>
-  );
-}
-function ShipsPage() {
-  const [ships, setShips] = useState<Ship[]>([]),
-    [entries, setEntries] = useState<Entry[]>([]),
-    [name, setName] = useState(""),
-    [color, setColor] = useState("#9bbf91"),
-    [error, setError] = useState("");
-  const load = async () => {
-    try {
-      const [fleet, knowledge] = await Promise.all([
-        api<Ship[]>("/api/ships"),
-        api<Entry[]>("/api/knowledge"),
-      ]);
-      setShips(fleet);
-      setEntries(knowledge);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Unable to load fleet");
-    }
-  };
-  useEffect(() => {
-    void load();
-  }, []);
-  const create = async (event: FormEvent) => {
-    event.preventDefault();
-    try {
-      await api("/api/ships", {
-        method: "POST",
-        body: JSON.stringify({ name, color }),
-      });
-      setName("");
-      await load();
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Unable to create Ship",
-      );
-    }
-  };
-  return (
-    <main className="route-page ships-page">
-      <a className="back" href="/">
-        ← Back to library
-      </a>
-      <header className="route-header">
-        <p className="eyebrow">SHIP COMMAND CENTER</p>
-        <h1>Build your fleet.</h1>
-        <p>
-          Ships are app-level collections. Every knowledge card has its own
-          Captain—the person or channel delivering that specific knowledge—and
-          appears in the live manifest below.
-        </p>
-      </header>
-      <form className="ship-command" onSubmit={create}>
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Ship name"
-          required
-        />
-        <input
-          type="color"
-          value={color}
-          onChange={(event) => setColor(event.target.value)}
-        />
-        <button className="add">Launch Ship</button>
-      </form>
-      {error && <p className="form-error">{error}</p>}
-      <div className="ship-fleet">
-        {ships.map((ship) => {
-          const manifest = entries.filter((entry) =>
-            entry.shipIds.includes(ship._id),
-          );
-          return (
-            <article className="ship-card" key={ship._id}>
-              <i style={{ background: ship.color }} />
-              <div className="ship-card-heading">
-                <p className="eyebrow">
-                  {manifest.length} cards ·{" "}
-                  {
-                    new Set(
-                      manifest.map(
-                        (entry) =>
-                          entry.captainName ||
-                          entry.source?.creatorName ||
-                          "Unknown captain",
-                      ),
-                    ).size
-                  }{" "}
-                  captains
-                </p>
-                <h2>{ship.name}</h2>
-                <small>{manifest.length} knowledge cards aboard</small>
-              </div>
-              <div className="ship-manifest">
-                {manifest.length ? (
-                  manifest.slice(0, 4).map((entry) => (
-                    <a href={`/knowledge/${entry._id}`} key={entry._id}>
-                      <span>{entry.title}</span>
-                      <ArrowUpRight size={14} />
-                    </a>
-                  ))
-                ) : (
-                  <p>Flag cards here from their three-dot menu.</p>
-                )}
-              </div>
-              <button
-                className="ghost"
-                onClick={async () => {
-                  if (window.confirm(`Archive ${ship.name}?`)) {
-                    await api(`/api/ships/${ship._id}`, { method: "DELETE" });
-                    await load();
-                  }
-                }}
-              >
-                Archive Ship
-              </button>
-            </article>
-          );
-        })}
-        {!ships.length && (
-          <div className="empty">
-            Your fleet is empty. Launch the first Ship above.
-          </div>
-        )}
-      </div>
-    </main>
-  );
-}
 const Nav = ({
   icon,
   label,
@@ -1085,6 +699,29 @@ function Library({
       <div className="feed">
         {pageEntries.map((entry) => (
           <article key={entry._id}>
+            <div
+              className={
+                "card-thumb" +
+                (entry.source?.thumbnailUrl ? "" : " card-thumb-fallback")
+              }
+            >
+              {entry.source?.thumbnailUrl ? (
+                <img
+                  src={entry.source.thumbnailUrl}
+                  alt=""
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                    event.currentTarget.parentElement?.classList.add(
+                      "card-thumb-fallback",
+                    );
+                  }}
+                />
+              ) : (
+                <BookOpen size={22} />
+              )}
+              <span className="card-thumb-type">{entry.source?.type}</span>
+            </div>
             <div className="entry-top">
               <span className="ship-pills">
                 {entry.ships.length ? (

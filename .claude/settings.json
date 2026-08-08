@@ -4,7 +4,9 @@
       "Bash(node -e ' *)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx tsx -e ' *)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(qlmanage -t -s 800 -o /private/tmp/claude-501/-Users-arghyadipchowdhury-Documents-knowledge-hub/b068a2c3-26cc-4fc3-8d08-514869924ec9/scratchpad/ship-art2 /private/tmp/claude-501/-Users-arghyadipchowdhury-Documents-knowledge-hub/b068a2c3-26cc-4fc3-8d08-514869924ec9/scratchpad/ship-art2/wealth.svg)",
+      "Bash(qlmanage -t -s 800 -o /private/tmp/claude-501/-Users-arghyadipchowdhury-Documents-knowledge-hub/b068a2c3-26cc-4fc3-8d08-514869924ec9/scratchpad/ship-art2 /private/tmp/claude-501/-Users-arghyadipchowdhury-Documents-knowledge-hub/b068a2c3-26cc-4fc3-8d08-514869924ec9/scratchpad/ship-art2/psychology.svg)"
     ]
   }
 }

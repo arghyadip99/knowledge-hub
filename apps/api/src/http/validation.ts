@@ -18,6 +18,7 @@ export const sourceInput = z.object({
   language: z.string().max(20).optional(),
   rawText: z.string().max(500000).optional(),
   focusArea: flexibleFocusArea.optional(),
+  thumbnailUrl: z.string().url().optional().or(z.literal("")),
 });
 export const entryInput = z.object({
   title: z.string().min(1).optional(),
@@ -52,6 +53,8 @@ export const shipInput = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, "Use a hex colour such as #9bbf91")
     .optional(),
+  // Not `.url()` — this is typically a `data:image/svg+xml;base64,...` URI, not an http(s) link.
+  imageUrl: z.string().max(500000).optional().or(z.literal("")),
 });
 export const connectionInput = z.object({
   fromType: z.enum(["source", "entry", "idea"]),

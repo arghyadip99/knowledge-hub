@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArchiveRestore,
   ArrowUpRight,
@@ -10,6 +11,7 @@ import {
   Compass,
   FileText,
   FolderHeart,
+  Inbox,
   Lightbulb,
   ListChecks,
   MoreHorizontal,
@@ -28,6 +30,14 @@ import { AuthPage } from "../features/auth/AuthPage";
 import { NotificationPopover } from "../features/knowledge/NotificationPopover";
 import { EngagementPanel } from "../features/knowledge/EngagementPanel";
 import {
+  modalMotion,
+  overlayMotion,
+  pageMotion,
+  sheetMotion,
+  staggerContainer,
+  staggerItem,
+} from "../features/ui/Modal";
+import {
   clearSession,
   getSession,
   type AuthSession,
@@ -35,6 +45,8 @@ import {
 import { KnowledgePage as KnowledgeRoutePage } from "../pages/KnowledgePage";
 import { ShipsPage as ShipsRoutePage } from "../pages/ShipsPage";
 import { ActionsPage as ActionsRoutePage } from "../pages/ActionsPage";
+import { SourcesPage as SourcesRoutePage } from "../pages/SourcesPage";
+import { SourceDetailPage as SourceDetailRoutePage } from "../pages/SourceDetailPage";
 import {
   emptyDashboard as blank,
   type Action,
@@ -65,8 +77,11 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
   const path = window.location.pathname;
   if (path === "/ships") return <ShipsRoutePage />;
   if (path === "/actions") return <ActionsRoutePage />;
+  if (path === "/sources") return <SourcesRoutePage />;
   const knowledgeMatch = path.match(/^\/knowledge\/([a-f\d]{24})$/i);
   if (knowledgeMatch) return <KnowledgeRoutePage id={knowledgeMatch[1]} />;
+  const sourceMatch = path.match(/^\/sources\/([a-f\d]{24})$/i);
+  if (sourceMatch) return <SourceDetailRoutePage id={sourceMatch[1]} />;
   const [dashboard, setDashboard] = useState(blank),
     [entries, setEntries] = useState<Entry[]>([]),
     [sources, setSources] = useState<Source[]>([]),
@@ -230,6 +245,15 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
             active={active === "applied"}
             onClick={() => setActive("applied")}
           />
+          {session.user.role === "admin" && (
+            <Nav
+              icon={<Inbox />}
+              label="Sources"
+              count={dashboard.inbox}
+              active={false}
+              onClick={() => window.location.assign("/sources")}
+            />
+          )}
           <Nav
             icon={<ListChecks />}
             label="Actions"
@@ -491,129 +515,148 @@ function AuthenticatedApp({ session }: { session: AuthSession }) {
           <span>Log out</span>
         </button>
       </nav>
-      {mobileMenuOpen && (
-        <div className="overlay mobile-actions-overlay">
-          <section className="modal mobile-actions-sheet" aria-label="Quick actions">
-            <button
-              className="close"
-              aria-label="Close actions"
-              onClick={() => setMobileMenuOpen(false)}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div className="overlay mobile-actions-overlay" {...overlayMotion}>
+            <motion.section
+              className="modal mobile-actions-sheet"
+              aria-label="Quick actions"
+              {...sheetMotion}
             >
-              <X />
-            </button>
-            <p className="eyebrow">QUICK ACTIONS</p>
-            <h2>Keep moving your thinking forward.</h2>
-            <div className="mobile-action-list">
               <button
-                onClick={() => {
-                  setGraphOpen(true);
-                  setMobileMenuOpen(false);
-                }}
+                className="close"
+                aria-label="Close actions"
+                onClick={() => setMobileMenuOpen(false)}
               >
-                <Brain size={18} /> Knowledge graph
+                <X />
               </button>
-              <button onClick={() => window.location.assign("/ships")}>
-                <ShipWheel size={18} /> Manage ships
-              </button>
-              <button onClick={() => window.location.assign("/actions")}>
-                <ListChecks size={18} /> Actions
-              </button>
-              {session.user.role === "admin" && (
-                <>
-                  <button
-                    onClick={() => {
-                      setQuizOpen(true);
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    <Lightbulb size={18} /> Recall quiz
-                  </button>
-                  <button
-                    onClick={() => {
-                      setImportOpen(true);
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    <FileText size={18} /> Import JSON
-                  </button>
-                  <button
-                    onClick={() => {
-                      setArchiveOpen(true);
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    <ArchiveRestore size={18} /> Archive
-                  </button>
-                </>
-              )}
-              <button className="mobile-logout" onClick={clearSession}>
-                <ChevronRight size={18} /> Log out
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-      {capture && (
-        <Capture
-          close={() => setCapture(false)}
-          done={async () => {
-            setCapture(false);
-            await load();
-          }}
-        />
-      )}
-      {manageShips && (
-        <ShipManager
-          ships={ships}
-          close={() => setManageShips(false)}
-          changed={load}
-        />
-      )}{" "}
-      {editing && (
-        <EditKnowledge
-          entry={editing}
-          close={() => setEditing(null)}
-          saved={async (updates) => {
-            await api(`/api/knowledge/${editing._id}`, {
-              method: "PATCH",
-              body: JSON.stringify(updates),
-            });
-            setEditing(null);
-            setNotice("Knowledge card updated.");
-            await load();
-          }}
-        />
-      )}
-      {flagging && (
-        <ShipFlagger
-          entry={flagging}
-          ships={ships}
-          close={() => setFlagging(null)}
-          save={saveShips}
-        />
-      )}{" "}
-      {detail && (
-        <KnowledgeDetail detail={detail} close={() => setDetail(null)} />
-      )}
-      {quizOpen && (
-        <Quiz
-          close={() => setQuizOpen(false)}
-          shipId={active.length === 24 ? active : undefined}
-        />
-      )}
-      {importOpen && (
-        <ImportPreview
-          close={() => setImportOpen(false)}
-          done={async () => {
-            setImportOpen(false);
-            await load();
-          }}
-        />
-      )}
-      {archiveOpen && (
-        <ArchiveLibrary close={() => setArchiveOpen(false)} restored={load} />
-      )}
-      {graphOpen && <KnowledgeGraph close={() => setGraphOpen(false)} />}
+              <p className="eyebrow">QUICK ACTIONS</p>
+              <h2>Keep moving your thinking forward.</h2>
+              <div className="mobile-action-list">
+                <button
+                  onClick={() => {
+                    setGraphOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Brain size={18} /> Knowledge graph
+                </button>
+                <button onClick={() => window.location.assign("/ships")}>
+                  <ShipWheel size={18} /> Manage ships
+                </button>
+                <button onClick={() => window.location.assign("/actions")}>
+                  <ListChecks size={18} /> Actions
+                </button>
+                {session.user.role === "admin" && (
+                  <>
+                    <button onClick={() => window.location.assign("/sources")}>
+                      <Inbox size={18} /> Sources
+                    </button>
+                    <button
+                      onClick={() => {
+                        setQuizOpen(true);
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <Lightbulb size={18} /> Recall quiz
+                    </button>
+                    <button
+                      onClick={() => {
+                        setImportOpen(true);
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <FileText size={18} /> Import JSON
+                    </button>
+                    <button
+                      onClick={() => {
+                        setArchiveOpen(true);
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <ArchiveRestore size={18} /> Archive
+                    </button>
+                  </>
+                )}
+                <button className="mobile-logout" onClick={clearSession}>
+                  <ChevronRight size={18} /> Log out
+                </button>
+              </div>
+            </motion.section>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {capture && <Capture close={() => setCapture(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {manageShips && (
+          <ShipManager
+            ships={ships}
+            close={() => setManageShips(false)}
+            changed={load}
+          />
+        )}
+      </AnimatePresence>{" "}
+      <AnimatePresence>
+        {editing && (
+          <EditKnowledge
+            entry={editing}
+            close={() => setEditing(null)}
+            saved={async (updates) => {
+              await api(`/api/knowledge/${editing._id}`, {
+                method: "PATCH",
+                body: JSON.stringify(updates),
+              });
+              setEditing(null);
+              setNotice("Knowledge card updated.");
+              await load();
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {flagging && (
+          <ShipFlagger
+            entry={flagging}
+            ships={ships}
+            close={() => setFlagging(null)}
+            save={saveShips}
+          />
+        )}
+      </AnimatePresence>{" "}
+      <AnimatePresence>
+        {detail && (
+          <KnowledgeDetail detail={detail} close={() => setDetail(null)} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {quizOpen && (
+          <Quiz
+            close={() => setQuizOpen(false)}
+            shipId={active.length === 24 ? active : undefined}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {importOpen && (
+          <ImportPreview
+            close={() => setImportOpen(false)}
+            done={async () => {
+              setImportOpen(false);
+              await load();
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {archiveOpen && (
+          <ArchiveLibrary close={() => setArchiveOpen(false)} restored={load} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {graphOpen && <KnowledgeGraph close={() => setGraphOpen(false)} />}
+      </AnimatePresence>
     </main>
   );
 }
@@ -695,9 +738,31 @@ function Library({
           </button>
         )}
       </div>
-      <div className="feed">
-        {pageEntries.map((entry) => (
-          <article key={entry._id}>
+      <motion.div
+        className="feed"
+        key={currentPage}
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
+        {pageEntries.map((entry) => {
+          const coverImage = entry.ships[0]?.imageUrl;
+          return (
+          <motion.article key={entry._id} variants={staggerItem}>
+            {coverImage ? (
+              <div className="feed-thumb">
+                <img src={coverImage} alt="" loading="lazy" />
+              </div>
+            ) : (
+              <div className="feed-thumb is-placeholder">
+                {entry.source?.type === "youtube" ||
+                entry.source?.type === "podcast" ? (
+                  <Play size={20} />
+                ) : (
+                  <FileText size={20} />
+                )}
+              </div>
+            )}
             <div className="entry-top">
               <span className="ship-pills">
                 {entry.ships.length ? (
@@ -736,6 +801,7 @@ function Library({
             <EngagementPanel
               entry={entry}
               onChange={(engagement) => onEngagementChange(entry._id, engagement)}
+              allowImageShare={false}
             />
             <footer>
               <span className={"state " + entry.status}>
@@ -757,9 +823,10 @@ function Library({
                 </a>
               )}
             </footer>
-          </article>
-        ))}
-      </div>
+          </motion.article>
+          );
+        })}
+      </motion.div>
       {!entries.length && (
         <div className="empty">
           No knowledge cards here yet. Capture a source or select another ship.
@@ -875,8 +942,8 @@ function ShipFlagger({
         : [...value, shipId],
     );
   return (
-    <div className="overlay">
-      <section className="modal ship-modal">
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.section className="modal ship-modal" {...modalMotion}>
         <button className="close" onClick={close}>
           <X />
         </button>
@@ -908,8 +975,8 @@ function ShipFlagger({
         >
           {saving ? "Saving…" : "Save ships"}
         </button>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 function ShipManager({
@@ -942,8 +1009,8 @@ function ShipManager({
     }
   };
   return (
-    <div className="overlay">
-      <section className="modal ship-modal">
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.section className="modal ship-modal" {...modalMotion}>
         <button className="close" onClick={close}>
           <X />
         </button>
@@ -994,8 +1061,8 @@ function ShipManager({
             </div>
           ))}
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 function EditKnowledge({
@@ -1014,12 +1081,18 @@ function EditKnowledge({
     [thesis, setThesis] = useState(entry.centralThesis),
     [summary, setSummary] = useState(entry.summary),
     [tags, setTags] = useState(entry.tags.join(", ")),
+    [thumbnailUrl, setThumbnailUrl] = useState(entry.source?.thumbnailUrl || ""),
     [saving, setSaving] = useState(false),
     [error, setError] = useState("");
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
+      if (thumbnailUrl !== (entry.source?.thumbnailUrl || ""))
+        await api(`/api/sources/${entry.sourceId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ thumbnailUrl }),
+        });
       await saved({
         title,
         captainName,
@@ -1039,8 +1112,8 @@ function EditKnowledge({
     }
   };
   return (
-    <div className="overlay">
-      <form className="modal edit-modal" onSubmit={submit}>
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.form className="modal edit-modal" onSubmit={submit} {...modalMotion}>
         <button type="button" className="close" onClick={close}>
           <X />
         </button>
@@ -1082,26 +1155,35 @@ function EditKnowledge({
           Tags <span>comma separated</span>
           <input value={tags} onChange={(e) => setTags(e.target.value)} />
         </label>
+        <label>
+          Cover image URL <span>optional</span>
+          {thumbnailUrl && (
+            <div className="route-thumb thumb-preview">
+              <img src={thumbnailUrl} alt="" loading="lazy" />
+            </div>
+          )}
+          <input
+            type="url"
+            value={thumbnailUrl}
+            onChange={(e) => setThumbnailUrl(e.target.value)}
+            placeholder="https://…"
+          />
+        </label>
         {error && <p className="form-error">{error}</p>}
         <button className="add full" disabled={saving}>
           {saving ? "Saving…" : "Save changes"}
         </button>
-      </form>
-    </div>
+      </motion.form>
+    </motion.div>
   );
 }
-function Capture({
-  close,
-  done,
-}: {
-  close: () => void;
-  done: () => Promise<void>;
-}) {
+function Capture({ close }: { close: () => void }) {
   const [type, setType] = useState("youtube"),
     [title, setTitle] = useState(""),
     [url, setUrl] = useState(""),
     [creator, setCreator] = useState(""),
     [text, setText] = useState(""),
+    [thumbnailUrl, setThumbnailUrl] = useState(""),
     [duplicates, setDuplicates] = useState<
       { _id: string; title: string; creatorName?: string }[]
     >([]),
@@ -1122,7 +1204,7 @@ function Capture({
     e.preventDefault();
     setBusy(true);
     try {
-      await api("/api/sources", {
+      const created = await api<{ _id: string }>("/api/sources", {
         method: "POST",
         body: JSON.stringify({
           type,
@@ -1130,9 +1212,10 @@ function Capture({
           url,
           creatorName: creator,
           rawText: text,
+          thumbnailUrl,
         }),
       });
-      await done();
+      window.location.assign(`/sources/${created._id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not capture source");
     } finally {
@@ -1140,8 +1223,8 @@ function Capture({
     }
   };
   return (
-    <div className="overlay">
-      <form className="modal capture-modal" onSubmit={submit}>
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.form className="modal capture-modal" onSubmit={submit} {...modalMotion}>
         <button type="button" className="close" onClick={close}>
           <X />
         </button>
@@ -1188,6 +1271,15 @@ function Capture({
           Creator / publication
           <input value={creator} onChange={(e) => setCreator(e.target.value)} />
         </label>
+        <label>
+          Cover image URL <span>optional — we'll try to fetch one automatically</span>
+          <input
+            type="url"
+            value={thumbnailUrl}
+            onChange={(e) => setThumbnailUrl(e.target.value)}
+            placeholder="https://…"
+          />
+        </label>
         {duplicates.length > 0 && (
           <div className="duplicate-warning">
             <b>Possible duplicate</b>
@@ -1210,8 +1302,8 @@ function Capture({
         <button className="add full" disabled={busy}>
           {busy ? "Capturing…" : "Capture source"}
         </button>
-      </form>
-    </div>
+      </motion.form>
+    </motion.div>
   );
 }
 function KnowledgeDetail({
@@ -1223,8 +1315,8 @@ function KnowledgeDetail({
 }) {
   const { entry, source, ideas, quotes, actions, ships } = detail;
   return (
-    <div className="overlay">
-      <section className="modal review-modal wide">
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.section className="modal review-modal wide" {...modalMotion}>
         <button className="close" onClick={close}>
           <X />
         </button>
@@ -1275,8 +1367,8 @@ function KnowledgeDetail({
             )}
           </>
         )}
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 function ArchiveLibrary({
@@ -1296,8 +1388,8 @@ function ArchiveLibrary({
     await restored();
   };
   return (
-    <div className="overlay">
-      <section className="modal archive-modal">
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.section className="modal archive-modal" {...modalMotion}>
         <button className="close" onClick={close}>
           <X />
         </button>
@@ -1321,8 +1413,8 @@ function ArchiveLibrary({
             <p className="modal-copy">Your archive is empty.</p>
           )}
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 function KnowledgeGraph({ close }: { close: () => void }) {
@@ -1336,8 +1428,8 @@ function KnowledgeGraph({ close }: { close: () => void }) {
   const entries = graph.nodes.filter((node) => node.type === "entry"),
     ideas = graph.nodes.filter((node) => node.type === "idea");
   return (
-    <div className="overlay">
-      <section className="modal graph-modal">
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.section className="modal graph-modal" {...modalMotion}>
         <button className="close" onClick={close}>
           <X />
         </button>
@@ -1366,8 +1458,8 @@ function KnowledgeGraph({ close }: { close: () => void }) {
             </div>
           ))}
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 function Quiz({ close, shipId }: { close: () => void; shipId?: string }) {
@@ -1392,8 +1484,8 @@ function Quiz({ close, shipId }: { close: () => void; shipId?: string }) {
     setIndex((value) => value + 1);
   };
   return (
-    <div className="overlay">
-      <section className="modal quiz-modal">
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.section className="modal quiz-modal" {...modalMotion}>
         <button className="close" onClick={close}>
           <X />
         </button>
@@ -1428,8 +1520,8 @@ function Quiz({ close, shipId }: { close: () => void; shipId?: string }) {
             No approved lessons are ready for recall yet.
           </p>
         )}
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 function ImportPreview({
@@ -1473,8 +1565,8 @@ function ImportPreview({
     }
   };
   return (
-    <div className="overlay">
-      <section className="modal import-modal">
+    <motion.div className="overlay" {...overlayMotion}>
+      <motion.section className="modal import-modal" {...modalMotion}>
         <button className="close" onClick={close}>
           <X />
         </button>
@@ -1509,8 +1601,8 @@ function ImportPreview({
             {busy ? "Importing…" : "Import approved"}
           </button>
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 export { App };

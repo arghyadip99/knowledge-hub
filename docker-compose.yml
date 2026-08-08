@@ -15,12 +15,10 @@ services:
     environment:
       MONGO_URI: mongodb://mongo:27017/knowledge-hub
       PORT: 4000
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
       JWT_SECRET: ${JWT_SECRET:-local-development-change-me}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       - mongo
     ports:
@@ -37,14 +35,5 @@ services:
     ports:
       - "8080:80"
 
-  ollama:
-    image: ollama/ollama:latest
-    profiles: ["ollama"]
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
 volumes:
   mongo_data:
-  ollama_data:

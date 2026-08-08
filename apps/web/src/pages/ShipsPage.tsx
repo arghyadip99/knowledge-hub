@@ -1,6 +1,8 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ShipWheel } from "lucide-react";
+import { motion } from "framer-motion";
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { pageMotion } from "../features/ui/Modal";
 import type { Entry, Ship } from "../types/knowledge";
 
 export function ShipsPage() {
@@ -47,7 +49,7 @@ export function ShipsPage() {
   };
 
   return (
-    <main className="route-page ships-page">
+    <motion.main className="route-page ships-page" {...pageMotion}>
       <a className="back" href="/">
         ← Back to library
       </a>
@@ -90,6 +92,15 @@ export function ShipsPage() {
           ).size;
           return (
             <article className="ship-card" key={ship._id}>
+              {ship.imageUrl ? (
+                <div className="ship-thumb">
+                  <img src={ship.imageUrl} alt="" loading="lazy" />
+                </div>
+              ) : (
+                <div className="ship-thumb is-placeholder">
+                  <ShipWheel size={20} />
+                </div>
+              )}
               <i style={{ background: ship.color }} />
               <div className="ship-card-heading">
                 <p className="eyebrow">
@@ -102,6 +113,14 @@ export function ShipsPage() {
                 {manifest.length ? (
                   manifest.slice(0, 4).map((entry) => (
                     <a href={`/knowledge/${entry._id}`} key={entry._id}>
+                      {entry.source?.thumbnailUrl && (
+                        <img
+                          className="manifest-thumb"
+                          src={entry.source.thumbnailUrl}
+                          alt=""
+                          loading="lazy"
+                        />
+                      )}
                       <span>{entry.title}</span>
                       <ArrowUpRight size={14} />
                     </a>
@@ -130,6 +149,6 @@ export function ShipsPage() {
           </div>
         )}
       </div>
-    </main>
+    </motion.main>
   );
 }

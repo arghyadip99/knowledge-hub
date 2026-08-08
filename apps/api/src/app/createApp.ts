@@ -25,7 +25,11 @@ import { KnowledgeEngagement } from "../models/Engagement.js";
 import { openapi } from "../docs/openapi.js";
 import { bulkKnowledgeImportSchema } from "../schemas/import.js";
 import { importKnowledge, recordImportBatch } from "../services/bulkImport.js";
-import { hydrateYoutubeSource, processSource } from "../services/ingestion.js";
+import {
+  hydrateOpenGraphSource,
+  hydrateYoutubeSource,
+  processSource,
+} from "../services/ingestion.js";
 import { asyncRoute, compactPayload as safe } from "../http/routeUtils.js";
 import {
   requireAdmin,
@@ -62,9 +66,9 @@ app.get("/health", (_req, res) =>
   res.json({
     ok: true,
     ai: {
-      provider: "ollama",
-      configured: Boolean(process.env.OLLAMA_BASE_URL || true),
-      model: process.env.OLLAMA_MODEL || "qwen2.5:7b",
+      provider: "openrouter",
+      configured: Boolean(process.env.OPENROUTER_API_KEY),
+      model: process.env.OPENROUTER_MODEL || "unset",
     },
   }),
 );
@@ -72,11 +76,9 @@ app.get("/api/config", (_req, res) =>
   res.json({
     providers: [
       {
-        id: "ollama",
-        configured: true,
-        model: process.env.OLLAMA_MODEL || "qwen2.5:7b",
-        baseUrl:
-          process.env.OLLAMA_BASE_URL || "http://host.docker.internal:11434",
+        id: "openrouter",
+        configured: Boolean(process.env.OPENROUTER_API_KEY),
+        model: process.env.OPENROUTER_MODEL || "unset",
       },
       { id: "gemini", configured: Boolean(process.env.GEMINI_API_KEY) },
       { id: "groq", configured: Boolean(process.env.GROQ_API_KEY) },
@@ -289,6 +291,8 @@ app.post(
     });
     if (source.type === "youtube" && source.url)
       await hydrateYoutubeSource(String(source._id));
+    else if (source.url && !data.thumbnailUrl)
+      await hydrateOpenGraphSource(String(source._id));
     res.status(201).json(await Source.findById(source._id));
   }),
 );
@@ -342,11 +346,23 @@ app.patch(
   "/api/sources/:id",
   asyncRoute(async (req, res) => {
     const sourceId = id.parse(req.params.id);
-    const source = await Source.findByIdAndUpdate(
-      sourceId,
-      safe(sourceInput.partial().parse(req.body)),
-      { new: true, runValidators: true },
-    );
+    const existing = await Source.findById(sourceId).select("status").lean();
+    if (!existing)
+      return res.status(404).json({ message: "Source not found" });
+    const patch = safe(sourceInput.partial().parse(req.body));
+    // The cover image is purely cosmetic and doesn't affect the derived knowledge
+    // entry, so it's the one field still editable after approval (via EditKnowledge)
+    // even though the rest of the source is otherwise frozen once it becomes knowledge.
+    const isCosmeticOnly = Object.keys(patch).every((key) => key === "thumbnailUrl");
+    if (existing.status === "approved" && !isCosmeticOnly)
+      return res.status(400).json({
+        message:
+          "This source is already approved knowledge. Edit the knowledge card instead of the source.",
+      });
+    const source = await Source.findByIdAndUpdate(sourceId, patch, {
+      new: true,
+      runValidators: true,
+    });
     if (!source) return res.status(404).json({ message: "Source not found" });
     res.json(source);
   }),
@@ -403,11 +419,76 @@ app.post(
     res.json(source);
   }),
 );
+app.post(
+  "/api/sources/:id/archive",
+  asyncRoute(async (req, res) => {
+    const sourceId = id.parse(req.params.id);
+    const [source, entry] = await Promise.all([
+      Source.findById(sourceId),
+      KnowledgeEntry.findOne({ sourceId }),
+    ]);
+    if (!source) return res.status(404).json({ message: "Source not found" });
+    if (source.status === "approved")
+      return res.status(400).json({
+        message:
+          "This source is already approved knowledge. Archive the knowledge card instead of the source.",
+      });
+    source.status = "archived";
+    source.archivedAt = new Date();
+    await Promise.all([
+      source.save(),
+      entry
+        ? KnowledgeEntry.updateOne(
+            { _id: entry._id },
+            { status: "archived", archivedAt: source.archivedAt },
+          )
+        : Promise.resolve(),
+    ]);
+    res.json(source);
+  }),
+);
+app.post(
+  "/api/sources/:id/restore",
+  asyncRoute(async (req, res) => {
+    const sourceId = id.parse(req.params.id);
+    const [source, entry] = await Promise.all([
+      Source.findById(sourceId),
+      KnowledgeEntry.findOne({ sourceId }),
+    ]);
+    if (!source) return res.status(404).json({ message: "Source not found" });
+    if (source.status !== "archived")
+      return res
+        .status(400)
+        .json({ message: "Only an archived source can be restored" });
+    source.status = entry ? "ready_for_review" : "draft";
+    source.archivedAt = undefined;
+    await Promise.all([
+      source.save(),
+      entry
+        ? KnowledgeEntry.updateOne(
+            { _id: entry._id },
+            { $set: { status: "inbox" }, $unset: { archivedAt: "" } },
+          )
+        : Promise.resolve(),
+    ]);
+    res.json(source);
+  }),
+);
 app.delete(
   "/api/sources/:id",
   asyncRoute(async (req, res) => {
     const sourceId = id.parse(req.params.id);
-    const entry = await KnowledgeEntry.findOne({ sourceId });
+    const [existing, entry] = await Promise.all([
+      Source.findById(sourceId).select("status").lean(),
+      KnowledgeEntry.findOne({ sourceId }),
+    ]);
+    if (!existing)
+      return res.status(404).json({ message: "Source not found" });
+    if (existing.status === "approved")
+      return res.status(400).json({
+        message:
+          "This source is already approved knowledge and can't be permanently deleted here. Archive the knowledge card instead.",
+      });
     await Promise.all([
       Source.findByIdAndDelete(sourceId),
       TranscriptChunk.deleteMany({ sourceId }),

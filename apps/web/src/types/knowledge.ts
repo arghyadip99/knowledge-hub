@@ -3,7 +3,17 @@ export type Ship = {
   name: string;
   color: string;
   description?: string;
+  imageUrl?: string;
   cardCount: number;
+};
+
+export type SourceProgress = {
+  stage?: string;
+  completed?: number;
+  total?: number;
+  candidates?: number;
+  ideas?: number;
+  message?: string;
 };
 
 export type Source = {
@@ -17,6 +27,10 @@ export type Source = {
   status: string;
   transcriptStatus: string;
   focusArea?: string;
+  failureReason?: string;
+  ingestionMetadata?: { progress?: SourceProgress };
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Idea = {
@@ -76,6 +90,38 @@ export type Detail = {
   quotes: { _id: string; text: string; speaker?: string; approved: boolean }[];
   actions: Action[];
   ships: Ship[];
+};
+
+export type SourceDraftEntry = {
+  _id: string;
+  title: string;
+  captainName?: string;
+  centralThesis: string;
+  summary: string;
+  whyItMattersToMe?: string;
+  tags: string[];
+  status: string;
+  confidence?: number;
+};
+
+export type SourceRun = {
+  _id: string;
+  provider: string;
+  model?: string;
+  status: string;
+  error?: string;
+  createdAt: string;
+  rawOutput?: { usedFallback?: boolean; candidates?: number };
+};
+
+export type SourceDetail = {
+  source: Source;
+  entry: SourceDraftEntry | null;
+  chunks: { _id: string }[];
+  ideas: Idea[];
+  quotes: { _id: string; text: string; speaker?: string; approved: boolean }[];
+  actions: Action[];
+  runs: SourceRun[];
 };
 
 export type Dashboard = {

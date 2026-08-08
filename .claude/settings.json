@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npx tsx -e ' *)",
+      "Bash(npx tsx *)"
+    ]
+  }
+}

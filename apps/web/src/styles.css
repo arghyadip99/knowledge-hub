@@ -42,14 +42,29 @@
   color: #4d6054;
   text-decoration: none;
   font-size: 12px;
+  /* Grid items default to a content-based min-width, not 0 — without this, a long
+     knowledge-card title refuses to shrink/truncate and overflows the ship card. */
+  min-width: 0;
 }
 .ship-manifest a:hover {
   background: #e6eee0;
 }
 .ship-manifest span {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ship-manifest a > svg {
+  flex: none;
+}
+.manifest-thumb {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  object-fit: cover;
 }
 .ship-manifest p {
   margin: 0;
@@ -87,6 +102,22 @@
   width: 100%;
   max-height: 320px;
   object-fit: cover;
+}
+.thumb-preview {
+  margin: 8px 0;
+}
+.thumb-preview img {
+  max-height: 140px;
+}
+.route-thumb.is-embed {
+  aspect-ratio: 16 / 9;
+  background: #111a13;
+}
+.route-thumb.is-embed iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 .route-header {
   display: block;
@@ -274,6 +305,25 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
+  box-shadow: 0 0 0 2px #fffefa;
+}
+.ship-thumb {
+  overflow: hidden;
+  height: 90px;
+  margin: -24px -24px 16px;
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(135deg, #eef3e4, #dce8cc);
+}
+.ship-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ship-thumb.is-placeholder {
+  display: grid;
+  place-items: center;
+  color: #8a9c7e;
 }
 .ship-fleet h2 {
   margin: 0;
@@ -333,7 +383,8 @@
   background: #fffefa;
   box-shadow: 0 8px 22px #1a241322;
 }
-.menu-popover button {
+.menu-popover button,
+.menu-popover a {
   display: flex;
   gap: 7px;
   align-items: center;
@@ -343,10 +394,22 @@
   background: transparent;
   color: #3b4d42;
   text-align: left;
+  text-decoration: none;
   font: 600 11px "DM Sans";
 }
-.menu-popover button:hover {
+.menu-popover button:hover,
+.menu-popover a:hover {
   background: #f0f3ed;
+}
+.share-menu-wrap {
+  position: relative;
+}
+.share-menu {
+  top: 100%;
+  right: auto;
+  left: 0;
+  margin-top: 4px;
+  min-width: 168px;
 }
 .menu-popover .danger {
   color: #a34d42;
@@ -994,6 +1057,24 @@ article:hover {
   border-color: #d7ddd0;
   box-shadow: 0 14px 26px #1a24130f;
 }
+.feed-thumb {
+  overflow: hidden;
+  height: 84px;
+  margin: -22px -22px 16px;
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(135deg, #eef3e4, #dce8cc);
+}
+.feed-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.feed-thumb.is-placeholder {
+  display: grid;
+  place-items: center;
+  color: #8a9c7e;
+}
 .entry-top {
   display: flex;
   gap: 7px;
@@ -1063,6 +1144,7 @@ h3 {
 }
 .engagement-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
   padding-top: 11px;
 }
@@ -1160,18 +1242,60 @@ article footer button {
   background: #fffefa;
   color: #27352d;
   text-align: left;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.source-row:hover {
+  border-color: #d7ddd0;
+  box-shadow: 0 4px 14px #1a24130f;
+}
+.source-row > svg {
+  flex: none;
+  color: #9ba29c;
 }
 .source-row > span:nth-child(2) {
   display: grid;
   flex: 1;
+  min-width: 0;
   gap: 3px;
 }
 .source-row b {
   font: 600 14px "DM Sans";
 }
 .source-row small {
+  overflow: hidden;
   color: #748078;
   font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source-status {
+  flex: none;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: #f2f3ef;
+  color: #738078;
+  font: 10px "DM Mono";
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.source-status.ready_for_review {
+  background: #f0e8fc;
+  color: #705b87;
+}
+.source-status.approved {
+  background: #e2f1e2;
+  color: #48734d;
+}
+.source-status.failed,
+.source-status.rejected {
+  background: #fbe9e5;
+  color: #a34d42;
+}
+.source-status.queued,
+.source-status.processing {
+  background: #fff3e0;
+  color: #92702e;
 }
 .source-icon {
   display: grid;
@@ -1182,6 +1306,20 @@ article footer button {
   border-radius: 8px;
   background: #e4efdc;
   color: #527447;
+}
+.source-thumb {
+  overflow: hidden;
+  flex: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 8px;
+  background: #e4efdc;
+}
+.source-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .overlay {
   position: fixed;
@@ -1256,7 +1394,8 @@ article footer button {
 }
 .capture-modal input,
 .capture-modal textarea,
-.transcript-paste textarea {
+.transcript-paste textarea,
+.transcript-paste input {
   resize: vertical;
   padding: 10px;
   border: 1px solid #d9ddd5;
@@ -1264,6 +1403,13 @@ article footer button {
   background: #fffefa;
   font-size: 13px;
   outline-color: #96ae7b;
+}
+.transcript-paste .field-row {
+  display: flex;
+  gap: 10px;
+}
+.transcript-paste .field-row label {
+  flex: 1;
 }
 .full {
   width: 100%;
@@ -1443,6 +1589,13 @@ article footer button {
   background: transparent;
   color: #607067;
   font: 600 12px "DM Sans";
+}
+.ghost.danger {
+  border-color: #e6c9c2;
+  color: #a34d42;
+}
+.ghost.danger:hover {
+  background: #fff0ed;
 }
 .spin {
   animation: rotate 1s linear infinite;

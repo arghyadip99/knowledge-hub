@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { ArrowUpRight, Check, RotateCcw, X } from "lucide-react";
 import { api } from "../lib/api";
+import { pageMotion } from "../features/ui/Modal";
 import type { Action } from "../types/knowledge";
 
 type Tab = "open" | "completed" | "dismissed";
@@ -72,7 +74,7 @@ export function ActionsPage() {
   const now = Date.now();
 
   return (
-    <main className="route-page actions-page">
+    <motion.main className="route-page actions-page" {...pageMotion}>
       <a className="back" href="/">
         ← Back to library
       </a>
@@ -171,6 +173,6 @@ export function ActionsPage() {
           </div>
         )}
       </div>
-    </main>
+    </motion.main>
   );
 }

@@ -1,8 +1,11 @@
 import { ArrowUpRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ListenPanel } from "../features/knowledge/ListenPanel";
 import { EngagementPanel } from "../features/knowledge/EngagementPanel";
 import { api } from "../lib/api";
+import { getEmbedUrl } from "../lib/embed";
+import { pageMotion } from "../features/ui/Modal";
 import type { Detail, Engagement } from "../types/knowledge";
 
 export function KnowledgePage({ id }: { id: string }) {
@@ -34,6 +37,7 @@ export function KnowledgePage({ id }: { id: string }) {
     );
 
   const { entry, source, ideas, quotes, actions, ships } = detail;
+  const embedUrl = getEmbedUrl(source);
   const lessonsPerPage = 5;
   const lessonPageCount = Math.max(1, Math.ceil(ideas.length / lessonsPerPage));
   const currentLessonPage = Math.min(lessonPage, lessonPageCount);
@@ -76,14 +80,26 @@ export function KnowledgePage({ id }: { id: string }) {
     );
 
   return (
-    <main className="route-page">
+    <motion.main className="route-page" {...pageMotion}>
       <a className="back" href="/">
         ← Back to library
       </a>
-      {source.thumbnailUrl && (
-        <div className="route-thumb">
-          <img src={source.thumbnailUrl} alt="" loading="lazy" />
+      {embedUrl ? (
+        <div className="route-thumb is-embed">
+          <iframe
+            src={embedUrl}
+            title={entry?.title || source.title}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            loading="lazy"
+          />
         </div>
+      ) : (
+        source.thumbnailUrl && (
+          <div className="route-thumb">
+            <img src={source.thumbnailUrl} alt="" loading="lazy" />
+          </div>
+        )
       )}
       <header className="route-header">
         <p className="eyebrow">
@@ -213,6 +229,6 @@ export function KnowledgePage({ id }: { id: string }) {
           </section>
         </>
       )}
-    </main>
+    </motion.main>
   );
 }

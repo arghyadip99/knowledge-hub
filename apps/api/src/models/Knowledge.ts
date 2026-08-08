@@ -50,6 +50,9 @@ export const Ship = model(
       name: { type: String, required: true, trim: true },
       description: { type: String, default: "" },
       color: { type: String, default: "#9bbf91" },
+      // A generated cover image (data URI or hosted URL) representing this ship's
+      // topic — shown on knowledge cards belonging to it instead of a per-video thumbnail.
+      imageUrl: { type: String, default: "" },
       archivedAt: Date,
     },
     timestamps,

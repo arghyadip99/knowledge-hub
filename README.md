@@ -1,4 +1,4 @@
-# Knowledge Hub — local AI knowledge refinery
+# Knowledge Hub — AI knowledge refinery
 
 Turn podcasts, videos, newsletters, books, and notes into knowledge you can use. You own every source: AI drafts the distillation, but nothing enters your approved library until you review it.
 
@@ -10,22 +10,24 @@ docker compose up --build
 
 Open [the dashboard](http://localhost:8080). MongoDB runs on `27017`; the API is on `4000`.
 
-For AI processing, install [Ollama](https://ollama.com) on your machine and download a model:
+For AI processing, get a free API key at [openrouter.ai/keys](https://openrouter.ai/keys), pick a current free model id from [openrouter.ai/models?q=free](https://openrouter.ai/models?q=free) (the free catalog rotates), and set both before starting:
 
 ```bash
-ollama pull qwen2.5:7b
+export OPENROUTER_API_KEY=sk-or-...
+export OPENROUTER_MODEL=some-provider/some-model:free
+docker compose up --build
 ```
 
-The API automatically connects to Ollama at `http://host.docker.internal:11434` from Docker. Alternatively start an Ollama container with `docker compose --profile ollama up -d`, then pull a model inside it. Use a local model by default: transcripts remain on your computer and there is no per-request charge.
+Distillation runs on OpenRouter's cloud models rather than on your machine, so transcripts are sent to whichever model you configure — pick a provider you're comfortable sharing that content with. Free-tier models are rate-limited per minute and per day; OpenRouter raises those limits once you've ever added any credit to your account, which matters for long podcasts since a single source can mean dozens of chunked requests.
 
 ## Capture-to-knowledge workflow
 
-1. Select **Capture knowledge** and paste a YouTube URL, article URL, newsletter text, book excerpt, or note.
-2. The source is placed in your private review queue. For YouTube, the app attempts metadata and caption retrieval; paste a transcript if captions are unavailable.
-3. Select **Create AI draft**. Ollama extracts a thesis, summary, ideas, tags, quotes, and actions.
-4. Inspect the draft and choose **Approve knowledge**. Only then does it join your searchable library and review cycle.
+1. Select **Capture knowledge** and paste a YouTube URL, article URL, newsletter text, book excerpt, or note. You land on that source's page in **Sources** (`/sources`), your private review queue of everything not yet in the library.
+2. For YouTube, the app attempts metadata and caption retrieval; paste a transcript on the source's page if captions are unavailable.
+3. Select **Create AI draft**. OpenRouter extracts a thesis, summary, ideas, tags, quotes, and actions.
+4. Inspect the draft and choose **Approve knowledge** (or **Reject** to send it back for edits). Only approval moves it into your searchable library and review cycle.
 
-For a long podcast, the app splits the complete transcript into small sections, extracts evidence-backed candidates from every section, then ranks, deduplicates, and synthesizes up to 20 durable ideas. Processing progress and the number of candidates are visible in the review screen. If Ollama is temporarily unavailable, the source stays useful: a clearly marked low-confidence fallback draft is generated from every transcript section, never invented facts.
+For a long podcast, the app splits the complete transcript into small sections, extracts evidence-backed candidates from every section, then ranks, deduplicates, and synthesizes up to 20 durable ideas. Processing progress and the number of candidates are visible in the review screen. If OpenRouter is temporarily unavailable or misconfigured, the source stays useful: a clearly marked low-confidence fallback draft is generated from every transcript section, never invented facts.
 
 ## Connect to MongoDB locally
 
@@ -115,6 +117,8 @@ Atlas) and add these Vercel environment variables:
 ```text
 MONGO_URI=<your hosted MongoDB connection string>
 JWT_SECRET=<a long, random secret>
+OPENROUTER_API_KEY=<your OpenRouter key>
+OPENROUTER_MODEL=<a model id from openrouter.ai/models>
 ```
 
 Optional Google sign-in also needs `GOOGLE_CLIENT_ID` (API) and
@@ -122,10 +126,13 @@ Optional Google sign-in also needs `GOOGLE_CLIENT_ID` (API) and
 authorised JavaScript origin in Google Cloud. Deploy from the repository root;
 Vercel runs `npm run build` and routes `/api/*` to the serverless API.
 
-Vercel cannot reach an Ollama instance on your computer. In production,
-AI-draft processing safely falls back to extraction from the supplied source
-text until a cloud AI provider adapter is configured.
+Because AI processing calls OpenRouter over HTTPS rather than a local process,
+it works the same way in production as it does locally — no separate
+provider setup is needed for Vercel. If `OPENROUTER_API_KEY` or
+`OPENROUTER_MODEL` is missing or the request fails, AI-draft processing
+safely falls back to extraction from the supplied source text instead of
+failing the source.
 
 ## AI provider strategy
 
-Ollama is implemented as the local default. The API exposes configuration state for Gemini and Groq, but they are intentionally not used until their secure provider adapters are enabled and you add keys locally. This preserves the local-first guarantee and avoids silently sending private transcripts to a cloud provider.
+OpenRouter is the only distillation provider: one API key, and the model is swappable per environment via `OPENROUTER_MODEL` without a code change. The API also exposes configuration state for Gemini and Groq, but they are intentionally not used until their own provider adapters are implemented and you add keys.

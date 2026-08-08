@@ -80,13 +80,56 @@ export async function hydrateYoutubeSource(sourceId: string) {
   return source;
 }
 
+// Meta content can appear as `<meta property="og:image" content="...">` or with the
+// attributes reversed (`<meta content="..." property="og:image">`); OpenGraph tags key
+// off `property`, but Twitter card tags conventionally key off `name` instead — so both
+// attribute names and both orderings need to be checked.
+const metaContent = (html: string, key: string) => {
+  const patterns = ["property", "name"].flatMap((attr) => [
+    new RegExp(`<meta[^>]+${attr}=["']${key}["'][^>]+content=["']([^"']+)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+${attr}=["']${key}["']`, "i"),
+  ]);
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) return match[1];
+  }
+  return undefined;
+};
+
+export async function hydrateOpenGraphSource(sourceId: string) {
+  const source = await Source.findById(sourceId);
+  if (!source || !source.url) return source;
+  if (source.type === "youtube" || source.type === "note") return source;
+  try {
+    const response = await fetch(source.url, {
+      signal: AbortSignal.timeout(8000),
+      headers: { accept: "text/html" },
+    });
+    const contentType = response.headers.get("content-type") || "";
+    const contentLength = Number(response.headers.get("content-length") || 0);
+    if (
+      response.ok &&
+      contentType.includes("text/html") &&
+      (!contentLength || contentLength < 5_000_000)
+    ) {
+      const html = await response.text();
+      const image = metaContent(html, "og:image") || metaContent(html, "twitter:image");
+      source.thumbnailUrl = image || source.thumbnailUrl;
+      await source.save();
+    }
+  } catch {
+    /* optional metadata */
+  }
+  return source;
+}
+
 export async function processSource(sourceId: string) {
   const source = await Source.findById(sourceId);
   if (!source) return;
   const run = await AiRun.create({
     sourceId,
-    provider: "ollama",
-    model: process.env.OLLAMA_MODEL || "qwen2.5:7b",
+    provider: "openrouter",
+    model: process.env.OPENROUTER_MODEL || "unset",
     taskType: "long-form-distillation",
     status: "running",
     rawOutput: {},
@@ -218,7 +261,7 @@ export async function processSource(sourceId: string) {
     };
     await source.save();
     run.status = "completed";
-    run.provider = usedFallback ? "ollama+fallback" : "ollama";
+    run.provider = usedFallback ? "openrouter+fallback" : "openrouter";
     run.rawOutput = {
       entryId: entry._id,
       ideas: ideas.length,

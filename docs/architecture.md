@@ -4,7 +4,7 @@
 
 - `src/main.tsx` is intentionally only the React bootstrap.
 - `src/app/App.tsx` owns the current home-screen composition and route selection.
-- `src/pages/` contains route-level views: the library's full knowledge reader and Ship Command Center.
+- `src/pages/` contains route-level views: the full knowledge reader, Ship Command Center, the actions/reminders queue, and the source capture → AI draft → approve/reject workflow (`SourcesPage` list, `SourceDetailPage` review screen).
 - `src/features/knowledge/` contains reusable knowledge-specific UI such as the browser speech player.
 - `src/lib/` contains infrastructure shared by UI features, currently the typed HTTP client.
 - `src/types/` is the single frontend contract for API-shaped knowledge data.
